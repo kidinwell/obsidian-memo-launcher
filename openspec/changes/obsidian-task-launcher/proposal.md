@@ -17,12 +17,14 @@ Win+RのようにOSのどこからでも素早く呼び出せるランチャーU
 ## Capabilities
 
 ### New Capabilities
+
 - `quick-launcher`: OSグローバルホットキーの登録、軽量ポップアップウィンドウの表示/非表示切り替え、および作業実績（初期表示）/タスクのモード切り替えUI。
 - `task-capture`: Obsidian Vault内のタスクフォルダに対する個別タスクノートの生成、フロントマタープロパティ（依頼者、期日、完了日、将来の拡張プロパティ）の埋め込み、および本文書き込み。
 - `worklog-capture`: Obsidianコア設定に基づく当日デイリーノートの自動検出・テンプレートからの生成、指定見出しセクションへの時系列ログ（タイムスタンプ + 複数行メモ）の追記。
 - `config-management`: Obsidian Vaultのパス、タスクフォルダ名、Obsidianコアプラグイン（`.obsidian/daily-notes.json`）連携、作業ログ走査見出し、ホットキー割り当て、タスクプロパティ定義の保存と読み込み。
 
 ### Modified Capabilities
+
 None.
 
 ## Impact
