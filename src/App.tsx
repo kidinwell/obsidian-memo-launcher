@@ -1,50 +1,175 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { AppConfig } from "./types/config";
+import { getConfig } from "./services/configService";
+import { Header } from "./components/Header";
+import { WorklogForm } from "./components/WorklogForm";
+import { TaskForm } from "./components/TaskForm";
+import { SettingsModal } from "./components/SettingsModal";
+import { Toast, ToastProps } from "./components/Toast";
 import "./App.css";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [config, setConfigState] = useState<AppConfig | null>(null);
+  const [activeTab, setActiveTab] = useState<"worklog" | "task">("worklog");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  // Form persistence across tabs
+  const [worklogMemo, setWorklogMemo] = useState("");
+  const [taskData, setTaskData] = useState({
+    title: "",
+    requester: "",
+    due: "",
+    body: "",
+    custom_properties: {} as Record<string, any>,
+  });
+
+  const [toast, setToast] = useState<ToastProps>({
+    message: "",
+    type: "success",
+    visible: false,
+  });
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
+    setToast({ message, type, visible: true });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, visible: false }));
+    }, 2800);
+  };
+
+  const handleClose = async () => {
+    try {
+      await invoke("hide_launcher");
+    } catch (e) {
+      console.error("Failed to hide launcher", e);
+    }
+  };
+
+  const handleSuccess = (msg: string) => {
+    showToast(msg, "success");
+    setTimeout(() => {
+      handleClose();
+    }, 350);
+  };
+
+  const handleError = (msg: string) => {
+    showToast(msg, "error");
+  };
+
+  // Load configuration on startup
+  useEffect(() => {
+    getConfig().then((cfg) => {
+      setConfigState(cfg);
+      if (cfg.default_mode === "task" || cfg.default_mode === "worklog") {
+        setActiveTab(cfg.default_mode);
+      }
+    }).catch(console.error);
+
+    // Listen for launcher opened event from backend / tray / shortcut
+    const unlistenOpenPromise = listen("launcher-opened", () => {
+      getConfig().then((cfg) => {
+        setConfigState(cfg);
+        if (cfg.default_mode === "task" || cfg.default_mode === "worklog") {
+          setActiveTab(cfg.default_mode);
+        }
+      }).catch(console.error);
+      setIsSettingsOpen(false);
+    });
+
+    // Listen for open settings event from tray menu
+    const unlistenSettingsPromise = listen("open-settings", () => {
+      setIsSettingsOpen(true);
+    });
+
+    return () => {
+      unlistenOpenPromise.then((unlisten) => unlisten());
+      unlistenSettingsPromise.then((unlisten) => unlisten());
+    };
+  }, []);
+
+  // Keyboard navigation & global window dismiss
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (isSettingsOpen) {
+          setIsSettingsOpen(false);
+        } else {
+          handleClose();
+        }
+        return;
+      }
+
+      // Tab switching: Ctrl+Tab
+      if (e.ctrlKey && e.key === "Tab") {
+        e.preventDefault();
+        setActiveTab((prev) => (prev === "worklog" ? "task" : "worklog"));
+        return;
+      }
+
+      // Alt+1 / Alt+2
+      if (e.altKey && e.key === "1") {
+        e.preventDefault();
+        setActiveTab("worklog");
+        return;
+      }
+      if (e.altKey && e.key === "2") {
+        e.preventDefault();
+        setActiveTab("task");
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSettingsOpen]);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <div className="w-screen h-screen flex items-center justify-center p-2 box-border">
+      {/* Toast Notification */}
+      <Toast message={toast.message} type={toast.type} visible={toast.visible} />
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+      {/* Main Container */}
+      <div className="w-full h-full max-w-[620px] max-h-[400px] bg-zinc-950/95 border border-zinc-800/90 rounded-2xl shadow-2xl p-4 flex flex-col backdrop-blur-xl relative overflow-hidden">
+        {/* Top Header & Tab Controls */}
+        <Header
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onClose={handleClose}
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+
+        {/* Tab Content Body */}
+        <div className="flex-1 min-h-0">
+          {activeTab === "worklog" ? (
+            <WorklogForm
+              memo={worklogMemo}
+              setMemo={setWorklogMemo}
+              onSuccess={handleSuccess}
+              onError={handleError}
+            />
+          ) : (
+            <TaskForm
+              formData={taskData}
+              setFormData={setTaskData}
+              customPropertiesConfig={config?.task_custom_properties || []}
+              onSuccess={handleSuccess}
+              onError={handleError}
+            />
+          )}
+        </div>
+
+        {/* Settings Modal */}
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          onSaved={(newCfg) => setConfigState(newCfg)}
+          showToast={showToast}
+        />
+      </div>
+    </div>
   );
 }
 
