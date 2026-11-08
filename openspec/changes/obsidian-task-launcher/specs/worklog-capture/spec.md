@@ -47,18 +47,18 @@ The system SHALL append new work log entries under the configured section headin
 - **WHEN** an existing daily note lacks the configured section heading
 - **THEN** the system SHALL safely create the configured section heading in the file and append the entry under it
 
-### Requirement: Machine-readable WebVTT-like log formatting
-The system SHALL format each work log entry with a two-digit hour and minute timestamp (`hh:mm`) followed immediately by the memo text and a blank line separator.
+### Requirement: Subheading timestamped log formatting
+The system SHALL format each work log entry with a third-level heading containing a two-digit hour and minute timestamp (`### hh:mm`), followed immediately by the memo text, without inserting empty lines between consecutive work log entries.
 
 #### Scenario: Formatting submitted log text
 - **WHEN** the user submits a memo at 09:15 with content "レビュー依頼対応\n- PR #123 の確認"
 - **THEN** the appended block in Markdown SHALL match the pattern:
-  ```
-  09:15
+  ```markdown
+  ### 09:15
   レビュー依頼対応
   - PR #123 の確認
   ```
-  followed by an empty line delimiter
+  without an empty line between consecutive entries
 
 ### Requirement: Optional explicit anchor comment insertion
 The system SHALL support an optional explicit anchor comment insertion mode that appends work log entries directly before a designated anchor comment in the daily note.

@@ -163,7 +163,7 @@ fn test_e2e_worklog_capture_workflow() {
     assert!(content1.contains("type: daily"));
     assert!(content1.contains("## 今日の目標"));
     assert!(content1.contains("## 作業ログ"));
-    assert!(content1.contains("09:30\n朝会参加\n- スプリント目標の確認"));
+    assert!(content1.contains("### 09:30\n朝会参加\n- スプリント目標の確認"));
     assert!(content1.contains("## 振り返り\nGood day."));
 
     // 2. Second work log entry - append chronologically
@@ -184,11 +184,15 @@ fn test_e2e_worklog_capture_workflow() {
 
     let final_content = fs::read_to_string(&daily_path).unwrap();
 
-    // Verify all 3 entries are present in chronological order under ## 作業ログ
+    // Verify all 3 entries are present in chronological order under ## 作業ログ without blank lines between them
+    assert!(final_content.contains("### 09:30\n朝会参加\n- スプリント目標の確認\n### 11:15\n仕様書の確認と設計ドラフト作成\n### 15:45\nPR #42 のコードレビュー\n- テストケース追加の指摘"));
+    assert!(!final_content.contains("スプリント目標の確認\n\n### 11:15"));
+    assert!(!final_content.contains("設計ドラフト作成\n\n### 15:45"));
+
     let pos_heading = final_content.find("## 作業ログ").unwrap();
-    let pos_log1 = final_content.find("09:30\n朝会参加").unwrap();
-    let pos_log2 = final_content.find("11:15\n仕様書の確認").unwrap();
-    let pos_log3 = final_content.find("15:45\nPR #42").unwrap();
+    let pos_log1 = final_content.find("### 09:30\n朝会参加").unwrap();
+    let pos_log2 = final_content.find("### 11:15\n仕様書の確認").unwrap();
+    let pos_log3 = final_content.find("### 15:45\nPR #42").unwrap();
     let pos_reflect = final_content.find("## 振り返り").unwrap();
 
     assert!(pos_heading < pos_log1);
@@ -243,11 +247,11 @@ created: {{date}}
     let content1 = fs::read_to_string(&daily_path).unwrap();
     assert!(content1.contains("type: daily"));
     assert!(content1.contains("## 今日の目標\n- [ ] 今日の目標を達成する"));
-    assert!(content1.contains("09:15\n朝会参加\n- スプリントタスク確認"));
+    assert!(content1.contains("### 09:15\n朝会参加\n- スプリントタスク確認"));
     assert!(content1.contains("%% worklog %%"));
     assert!(content1.contains("## 振り返り\nお疲れ様でした。"));
 
-    let log1_pos_init = content1.find("09:15\n朝会参加").unwrap();
+    let log1_pos_init = content1.find("### 09:15\n朝会参加").unwrap();
     let anchor_pos_init = content1.find("%% worklog %%").unwrap();
     let reflect_pos_init = content1.find("## 振り返り").unwrap();
     assert!(log1_pos_init < anchor_pos_init);
@@ -271,11 +275,15 @@ created: {{date}}
 
     let final_content = fs::read_to_string(&daily_path).unwrap();
 
-    // Verify all 3 entries are present in order before %% worklog %%
+    // Verify all 3 entries are present in order before %% worklog %% without blank lines between entries
+    assert!(final_content.contains("### 09:15\n朝会参加\n- スプリントタスク確認\n### 13:30\nアンカーコメント追記のE2Eテスト実装\n### 18:00\n日報作成と退勤"));
+    assert!(!final_content.contains("スプリントタスク確認\n\n### 13:30"));
+    assert!(!final_content.contains("E2Eテスト実装\n\n### 18:00"));
+
     let pos_heading = final_content.find("## 作業ログ").unwrap();
-    let pos_log1 = final_content.find("09:15\n朝会参加").unwrap();
-    let pos_log2 = final_content.find("13:30\nアンカーコメント追記").unwrap();
-    let pos_log3 = final_content.find("18:00\n日報作成と退勤").unwrap();
+    let pos_log1 = final_content.find("### 09:15\n朝会参加").unwrap();
+    let pos_log2 = final_content.find("### 13:30\nアンカーコメント追記").unwrap();
+    let pos_log3 = final_content.find("### 18:00\n日報作成と退勤").unwrap();
     let pos_anchor = final_content.find("%% worklog %%").unwrap();
     let pos_reflect = final_content.find("## 振り返り").unwrap();
 
@@ -328,7 +336,7 @@ fn test_e2e_worklog_fallback_without_obsidian_daily_notes_config() {
 
     let content = fs::read_to_string(&note_path).unwrap();
     assert!(content.contains("## 作業ログ"));
-    assert!(content.contains("12:00\nフォールバックテスト\n- ルート直下に作成"));
+    assert!(content.contains("### 12:00\nフォールバックテスト\n- ルート直下に作成"));
 
     let _ = fs::remove_dir_all(&vault_path);
 }
@@ -419,13 +427,13 @@ fn test_e2e_worklog_with_moment_weekday_and_obsidian_locale() {
         .collect();
     assert_eq!(files.len(), 1);
 
-    // Verify both entries are in the file in order
+    // Verify both entries are in the file in order without blank line between them
     let final_content = fs::read_to_string(&note_path).unwrap();
-    assert!(final_content.contains("10:00\n仕様策定と設計検討"));
-    assert!(final_content.contains("15:30\nMoment.js 日付フォーマッタの実装"));
+    assert!(final_content.contains("### 10:00\n仕様策定と設計検討\n### 15:30\nMoment.js 日付フォーマッタの実装"));
+    assert!(!final_content.contains("仕様策定と設計検討\n\n### 15:30"));
 
-    let pos_log1 = final_content.find("10:00\n仕様策定と設計検討").unwrap();
-    let pos_log2 = final_content.find("15:30\nMoment.js 日付フォーマッタの実装").unwrap();
+    let pos_log1 = final_content.find("### 10:00\n仕様策定と設計検討").unwrap();
+    let pos_log2 = final_content.find("### 15:30\nMoment.js 日付フォーマッタの実装").unwrap();
     assert!(pos_log1 < pos_log2);
 
     let _ = fs::remove_dir_all(&vault_path);

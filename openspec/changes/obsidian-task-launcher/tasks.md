@@ -52,6 +52,12 @@
 - [x] 9.1 Moment.js 互換の日付フォーマッタ（最長一致トークン置換、`[...]` エスケープ対応、`ddd` / `dddd` / `dd` などのトークン衝突回避、およびロケールに応じた曜日置換）を Rust 側で実装し、単体テストを追加する
 - [x] 9.2 デイリーノート解決処理（`ensure_daily_note_exists`）でロケール（`.obsidian/app.json` またはシステムロケール）に基づくファイル名（例: `YYYY-MM-DD(ddd)` → `2026-11-08(日).md`）が正しく認識され、既存ノートの重複作成を防ぐことを検証する
 
+## 10. Heading-based Worklog Entry Formatting
+
+- [x] 10.1 Rust バックエンドのログ整形処理（`format_worklog_entry`）を小見出し形式（`### hh:mm\n{memo}`）に改修し、単体テストを更新・パスさせる
+- [x] 10.2 セクション挿入（`insert_entry_into_content`）およびアンカー挿入（`insert_entry_before_anchor`）で `### hh:mm` 形式のエントリが正しく配置されることを検証する
+- [x] 10.3 フロントエンドのプレースホルダーやヘルプテキスト等を微調整し、E2E での記録結果を確認する
+
 ## Workflow follow-up
 
 - Archive the change after the project's review requirements are satisfied.

@@ -197,7 +197,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             <p className="mt-1 text-[10px] text-zinc-500">
-              ※ デイリーノートの保存先フォルダ・日付書式・テンプレートは Obsidian コアプラグイン設定 (.obsidian/daily-notes.json) に自動連携します。
+              ※ デイリーノート内のこの見出し配下に「### hh:mm」の小見出し形式で時系列に追記されます。デイリーノートの保存先フォルダ・日付書式・テンプレートは Obsidian コアプラグイン設定 (.obsidian/daily-notes.json) に自動連携します。
             </p>
           </div>
 

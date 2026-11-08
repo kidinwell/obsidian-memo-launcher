@@ -67,7 +67,7 @@ export const WorklogForm: React.FC<WorklogFormProps> = ({
       <div className="flex items-center justify-between px-1 py-1 mb-2 text-xs text-zinc-400">
         <span className="flex items-center gap-1.5 font-medium text-zinc-300">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          記録時刻: <span className="font-mono text-zinc-200">{currentTime}</span>
+          記録見出し: <span className="font-mono text-zinc-200 font-semibold">### {currentTime}</span>
         </span>
         <span className="text-[11px] text-zinc-500">
           <kbd className="px-1 py-0.5 rounded bg-zinc-800 text-zinc-300 font-mono text-[10px]">Ctrl+Enter</kbd> で送信
@@ -80,7 +80,7 @@ export const WorklogForm: React.FC<WorklogFormProps> = ({
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="作業実績・メモを入力 (例: レビュー依頼対応、MTG議事録メモなど)..."
+          placeholder="作業実績・メモを入力 (例: レビュー依頼対応、- PR #123 の確認 など)..."
           disabled={submitting}
           className="w-full h-full p-3.5 text-sm bg-zinc-900/80 border border-zinc-800/80 rounded-xl resize-none text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/70 focus:border-indigo-500/70 transition-all font-sans leading-relaxed"
         />

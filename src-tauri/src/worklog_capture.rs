@@ -397,8 +397,31 @@ pub fn ensure_daily_note_exists(
     Ok(daily_note_path)
 }
 
+fn is_worklog_timestamp_heading(line: &str) -> bool {
+    let trimmed = line.trim();
+    if let Some(rest) = trimmed.strip_prefix("### ") {
+        let rest = rest.trim();
+        let parts: Vec<&str> = rest.split(':').collect();
+        if parts.len() == 2 && parts[0].len() == 2 && parts[1].len() == 2 {
+            return parts[0].chars().all(|c| c.is_ascii_digit())
+                && parts[1].chars().all(|c| c.is_ascii_digit());
+        }
+    }
+    false
+}
+
 pub fn format_worklog_entry(timestamp: &str, memo: &str) -> String {
-    format!("{}\n{}", timestamp, memo.trim())
+    let ts = timestamp.trim();
+    let header = if ts.starts_with("### ") || ts.starts_with('#') {
+        ts.to_string()
+    } else {
+        format!("### {}", ts)
+    };
+    if memo.trim().is_empty() {
+        header
+    } else {
+        format!("{}\n{}", header, memo.trim())
+    }
 }
 
 pub fn insert_entry_into_content(content: &str, heading: &str, entry: &str) -> String {
@@ -421,23 +444,33 @@ pub fn insert_entry_into_content(content: &str, heading: &str, entry: &str) -> S
                 let line_trim = lines[i].trim();
                 if line_trim.starts_with('#') {
                     let level = line_trim.chars().take_while(|&c| c == '#').count();
-                    if level > 0 && level <= heading_level {
+                    if level > 0 && level <= heading_level && !is_worklog_timestamp_heading(line_trim) {
                         insert_idx = i;
                         break;
                     }
                 }
             }
 
+            let has_existing_entry = lines[(idx + 1)..insert_idx]
+                .iter()
+                .any(|line| !line.trim().is_empty());
+
             let mut result = Vec::new();
             for i in 0..insert_idx {
                 result.push(lines[i].to_string());
             }
 
-            let last_line = result.last().map(|s| s.as_str()).unwrap_or("");
-            if !last_line.is_empty() {
-                result.push(String::new());
+            while let Some(last) = result.last() {
+                if last.is_empty() {
+                    result.pop();
+                } else {
+                    break;
+                }
             }
 
+            if !has_existing_entry {
+                result.push(String::new());
+            }
             result.push(entry.to_string());
             result.push(String::new());
 
@@ -474,16 +507,35 @@ pub fn insert_entry_before_anchor(content: &str, anchor: &str, entry: &str) -> O
 
     let idx = anchor_idx?;
 
+    let mut section_start_idx = 0;
+    for i in (0..idx).rev() {
+        let line_trim = lines[i].trim();
+        if line_trim.starts_with('#') && !is_worklog_timestamp_heading(line_trim) {
+            section_start_idx = i;
+            break;
+        }
+    }
+
+    let has_existing_entry = lines[(section_start_idx + 1)..idx]
+        .iter()
+        .any(|line| !line.trim().is_empty());
+
     let mut result = Vec::new();
     for i in 0..idx {
         result.push(lines[i].to_string());
     }
 
-    let last_line = result.last().map(|s| s.as_str()).unwrap_or("");
-    if !last_line.is_empty() {
-        result.push(String::new());
+    while let Some(last) = result.last() {
+        if last.is_empty() {
+            result.pop();
+        } else {
+            break;
+        }
     }
 
+    if !has_existing_entry {
+        result.push(String::new());
+    }
     result.push(entry.to_string());
     result.push(String::new());
 
@@ -662,41 +714,62 @@ mod tests {
     }
 
     #[test]
+    fn test_format_worklog_entry() {
+        let entry = format_worklog_entry("09:15", "レビュー依頼対応\n- PR #123 の確認");
+        assert_eq!(entry, "### 09:15\nレビュー依頼対応\n- PR #123 の確認");
+
+        // If timestamp already has ### prefix, don't duplicate
+        let entry2 = format_worklog_entry("### 14:30", "打ち合わせ");
+        assert_eq!(entry2, "### 14:30\n打ち合わせ");
+    }
+
+    #[test]
     fn test_insert_entry_into_existing_heading() {
         let content = r#"# 2026-11-08
 
 ## 作業ログ
 
-10:00
+### 10:00
 朝会参加
 
 ## 振り返り
 Good day!
 "#;
 
-        let entry = "11:30\nタスクAの実装";
+        let entry = "### 11:30\nタスクAの実装";
         let updated = insert_entry_into_content(content, "## 作業ログ", entry);
 
-        assert!(updated.contains("10:00\n朝会参加"));
-        assert!(updated.contains("11:30\nタスクAの実装"));
+        assert!(updated.contains("### 10:00\n朝会参加\n### 11:30\nタスクAの実装"));
+        assert!(!updated.contains("朝会参加\n\n### 11:30"));
         assert!(updated.contains("## 振り返り"));
 
         let log_pos = updated.find("## 作業ログ").unwrap();
-        let new_entry_pos = updated.find("11:30\nタスクAの実装").unwrap();
+        let first_entry_pos = updated.find("### 10:00\n朝会参加").unwrap();
+        let new_entry_pos = updated.find("### 11:30\nタスクAの実装").unwrap();
         let reflect_pos = updated.find("## 振り返り").unwrap();
 
-        assert!(log_pos < new_entry_pos);
+        assert!(log_pos < first_entry_pos);
+        assert!(first_entry_pos < new_entry_pos);
         assert!(new_entry_pos < reflect_pos);
+
+        // Third entry append: should also be placed contiguously without blank lines
+        let entry3 = "### 14:00\nコードレビュー";
+        let updated2 = insert_entry_into_content(&updated, "## 作業ログ", entry3);
+        assert!(updated2.contains("### 10:00\n朝会参加\n### 11:30\nタスクAの実装\n### 14:00\nコードレビュー"));
+        assert!(!updated2.contains("タスクAの実装\n\n### 14:00"));
+        let third_pos = updated2.find("### 14:00\nコードレビュー").unwrap();
+        let reflect_pos2 = updated2.find("## 振り返り").unwrap();
+        assert!(third_pos < reflect_pos2);
     }
 
     #[test]
     fn test_insert_entry_into_missing_heading() {
         let content = "# 2026-11-08\n\nDaily content.";
-        let entry = "14:15\nレビュー対応";
+        let entry = "### 14:15\nレビュー対応";
         let updated = insert_entry_into_content(content, "## 作業ログ", entry);
 
         assert!(updated.contains("## 作業ログ"));
-        assert!(updated.contains("14:15\nレビュー対応"));
+        assert!(updated.contains("### 14:15\nレビュー対応"));
     }
 
     #[test]
@@ -759,7 +832,7 @@ Good day!
 
         let content1 = fs::read_to_string(&res1.daily_note_path).unwrap();
         assert!(content1.contains("## 作業ログ"));
-        assert!(content1.contains("09:30\nタスクの調査\n- 仕様書確認"));
+        assert!(content1.contains("### 09:30\nタスクの調査\n- 仕様書確認"));
 
         let input2 = WorklogInput {
             memo: "実装着手".to_string(),
@@ -770,8 +843,8 @@ Good day!
         assert!(res2.success);
 
         let content2 = fs::read_to_string(&res2.daily_note_path).unwrap();
-        assert!(content2.contains("09:30\nタスクの調査\n- 仕様書確認"));
-        assert!(content2.contains("10:45\n実装着手"));
+        assert!(content2.contains("### 09:30\nタスクの調査\n- 仕様書確認\n### 10:45\n実装着手"));
+        assert!(!content2.contains("仕様書確認\n\n### 10:45"));
 
         let _ = fs::remove_dir_all(&temp_dir);
     }
@@ -790,16 +863,16 @@ Good day!
 ## 振り返り
 Good day.
 "#;
-        let entry1 = "10:00\n朝会参加";
+        let entry1 = "### 10:00\n朝会参加";
         let updated1 = insert_entry_before_anchor(content, "%% worklog %%", entry1)
             .expect("Anchor insertion should succeed");
 
-        assert!(updated1.contains("10:00\n朝会参加"));
+        assert!(updated1.contains("### 10:00\n朝会参加"));
         assert!(updated1.contains("%% worklog %%"));
         assert!(updated1.contains("## 振り返り"));
 
         let log_heading_pos = updated1.find("## 作業ログ").unwrap();
-        let entry1_pos = updated1.find("10:00\n朝会参加").unwrap();
+        let entry1_pos = updated1.find("### 10:00\n朝会参加").unwrap();
         let anchor_pos = updated1.find("%% worklog %%").unwrap();
         let reflect_pos = updated1.find("## 振り返り").unwrap();
 
@@ -808,16 +881,16 @@ Good day.
         assert!(anchor_pos < reflect_pos);
 
         // Append second entry before the same anchor
-        let entry2 = "11:30\nタスクAの実装";
+        let entry2 = "### 11:30\nタスクAの実装";
         let updated2 = insert_entry_before_anchor(&updated1, "%% worklog %%", entry2)
             .expect("Second anchor insertion should succeed");
 
-        assert!(updated2.contains("10:00\n朝会参加"));
-        assert!(updated2.contains("11:30\nタスクAの実装"));
+        assert!(updated2.contains("### 10:00\n朝会参加\n### 11:30\nタスクAの実装"));
+        assert!(!updated2.contains("朝会参加\n\n### 11:30"));
         assert!(updated2.contains("%% worklog %%"));
 
-        let entry1_pos_2 = updated2.find("10:00\n朝会参加").unwrap();
-        let entry2_pos_2 = updated2.find("11:30\nタスクAの実装").unwrap();
+        let entry1_pos_2 = updated2.find("### 10:00\n朝会参加").unwrap();
+        let entry2_pos_2 = updated2.find("### 11:30\nタスクAの実装").unwrap();
         let anchor_pos_2 = updated2.find("%% worklog %%").unwrap();
 
         assert!(entry1_pos_2 < entry2_pos_2);
@@ -830,12 +903,12 @@ Good day.
 
 ## 作業ログ
 
-10:00
+### 10:00
 朝会参加
 
 ## 振り返り
 "#;
-        let entry = "14:00\n設計レビュー";
+        let entry = "### 14:00\n設計レビュー";
         // use_anchor is true, but content lacks "%% worklog %%"
         let updated = insert_worklog_entry(
             content,
@@ -845,9 +918,9 @@ Good day.
             "%% worklog %%",
         );
 
-        assert!(updated.contains("14:00\n設計レビュー"));
+        assert!(updated.contains("### 14:00\n設計レビュー"));
         let heading_pos = updated.find("## 作業ログ").unwrap();
-        let entry_pos = updated.find("14:00\n設計レビュー").unwrap();
+        let entry_pos = updated.find("### 14:00\n設計レビュー").unwrap();
         let reflect_pos = updated.find("## 振り返り").unwrap();
 
         assert!(heading_pos < entry_pos);
@@ -864,7 +937,7 @@ Good day.
 
 ## 振り返り
 "#;
-        let entry = "09:45\nメール確認";
+        let entry = "### 09:45\nメール確認";
         // use_anchor is false even though anchor exists
         let updated = insert_worklog_entry(
             content,
@@ -874,9 +947,9 @@ Good day.
             "%% worklog %%",
         );
 
-        assert!(updated.contains("09:45\nメール確認"));
+        assert!(updated.contains("### 09:45\nメール確認"));
         let heading_pos = updated.find("## 作業ログ").unwrap();
-        let entry_pos = updated.find("09:45\nメール確認").unwrap();
+        let entry_pos = updated.find("### 09:45\nメール確認").unwrap();
         let reflect_pos = updated.find("## 振り返り").unwrap();
 
         // Under heading mode, it should be between heading and next heading
@@ -919,7 +992,7 @@ Good day.
         assert!(res1.success);
 
         let content1 = fs::read_to_string(&res1.daily_note_path).unwrap();
-        let pos_entry1 = content1.find("09:00\n朝のタスク確認").unwrap();
+        let pos_entry1 = content1.find("### 09:00\n朝のタスク確認").unwrap();
         let pos_anchor1 = content1.find("%% worklog %%").unwrap();
         let pos_reflect1 = content1.find("## 振り返り").unwrap();
 
@@ -934,8 +1007,10 @@ Good day.
         assert!(res2.success);
 
         let content2 = fs::read_to_string(&res2.daily_note_path).unwrap();
-        let pos_entry1_2 = content2.find("09:00\n朝のタスク確認").unwrap();
-        let pos_entry2_2 = content2.find("17:30\n機能実装完了").unwrap();
+        assert!(content2.contains("### 09:00\n朝のタスク確認\n### 17:30\n機能実装完了"));
+        assert!(!content2.contains("朝のタスク確認\n\n### 17:30"));
+        let pos_entry1_2 = content2.find("### 09:00\n朝のタスク確認").unwrap();
+        let pos_entry2_2 = content2.find("### 17:30\n機能実装完了").unwrap();
         let pos_anchor_2 = content2.find("%% worklog %%").unwrap();
 
         assert!(pos_entry1_2 < pos_entry2_2);
