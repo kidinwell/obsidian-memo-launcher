@@ -8,9 +8,12 @@ import { WorklogForm } from "./components/WorklogForm";
 import { TaskForm } from "./components/TaskForm";
 import { SettingsModal } from "./components/SettingsModal";
 import { Toast, ToastProps } from "./components/Toast";
+import { Card } from "./components/ui/card";
+import { useTheme } from "./hooks/useTheme";
 import "./App.css";
 
 function App() {
+  useTheme();
   const [config, setConfigState] = useState<AppConfig | null>(null);
   const [activeTab, setActiveTab] = useState<"worklog" | "task">("worklog");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -169,7 +172,7 @@ function App() {
       <Toast message={toast.message} type={toast.type} visible={toast.visible} />
 
       {/* Main Container */}
-      <div className="w-full h-full max-w-[620px] max-h-[400px] bg-zinc-950/95 border border-zinc-800/90 rounded-2xl shadow-2xl p-4 flex flex-col backdrop-blur-xl relative overflow-hidden">
+      <Card className="w-full h-full max-w-[620px] max-h-[400px] p-4 gap-0 shadow-2xl relative">
         {/* Top Header & Tab Controls */}
         <Header
           activeTab={activeTab}
@@ -207,7 +210,7 @@ function App() {
           onSaved={(newCfg) => setConfigState(newCfg)}
           showToast={showToast}
         />
-      </div>
+      </Card>
     </div>
   );
 }

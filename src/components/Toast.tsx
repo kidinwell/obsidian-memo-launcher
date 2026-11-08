@@ -1,4 +1,5 @@
 import React from "react";
+import { CheckCircle2, AlertCircle, Info } from "lucide-react";
 
 export interface ToastProps {
   message: string;
@@ -9,27 +10,19 @@ export interface ToastProps {
 export const Toast: React.FC<ToastProps> = ({ message, type = "success", visible }) => {
   if (!visible) return null;
 
-  const bgColors = {
-    success: "bg-emerald-600 text-white shadow-emerald-900/40",
-    error: "bg-rose-600 text-white shadow-rose-900/40",
-    info: "bg-indigo-600 text-white shadow-indigo-900/40",
+  const icons = {
+    success: <CheckCircle2 className="size-4 text-emerald-500" />,
+    error: <AlertCircle className="size-4 text-destructive" />,
+    info: <Info className="size-4 text-primary" />,
   };
 
   return (
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-200">
-      <div
-        className={`px-4 py-2 rounded-lg text-xs font-medium shadow-lg flex items-center gap-2 ${bgColors[type]}`}
-      >
-        {type === "success" && (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-          </svg>
-        )}
-        {type === "error" && (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        )}
+    <div
+      data-testid="toast-notification"
+      className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-200 animate-in fade-in slide-in-from-top-2"
+    >
+      <div className="px-4 py-2 rounded-lg text-xs font-medium shadow-lg flex items-center gap-2 bg-popover text-popover-foreground border">
+        {icons[type]}
         <span>{message}</span>
       </div>
     </div>
