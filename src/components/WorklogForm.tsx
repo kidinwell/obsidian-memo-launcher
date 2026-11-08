@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { appendWorklog } from "../services/worklogService";
+import { Textarea } from "./ui/textarea";
+import { Button } from "./ui/button";
+import { Kbd } from "./ui/kbd";
 
 interface WorklogFormProps {
   memo: string;
@@ -73,18 +76,18 @@ export const WorklogForm: React.FC<WorklogFormProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-1 py-1 mb-2 text-xs text-zinc-400">
-        <span className="flex items-center gap-1.5 font-medium text-zinc-300">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          記録見出し: <span className="font-mono text-zinc-200 font-semibold">### {currentTime}</span>
+      <div className="flex items-center justify-between px-1 py-1 mb-2 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5 font-medium text-foreground">
+          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+          記録見出し: <span className="font-mono font-semibold">### {currentTime}</span>
         </span>
-        <span className="text-[11px] text-zinc-500">
-          <kbd className="px-1 py-0.5 rounded bg-zinc-800 text-zinc-300 font-mono text-[10px]">Ctrl+Enter</kbd> で送信
+        <span className="text-[11px] flex items-center gap-1">
+          <Kbd>Ctrl+Enter</Kbd> で送信
         </span>
       </div>
 
-      <div className="relative flex-1 min-h-[180px]">
-        <textarea
+      <div className="flex-1 min-h-[180px]">
+        <Textarea
           ref={textareaRef}
           data-testid="worklog-memo-input"
           value={memo}
@@ -92,22 +95,26 @@ export const WorklogForm: React.FC<WorklogFormProps> = ({
           onKeyDown={handleKeyDown}
           placeholder="作業実績・メモを入力 (例: レビュー依頼対応、- PR #123 の確認 など)..."
           disabled={submitting}
-          className="w-full h-full p-3.5 text-sm bg-zinc-900/80 border border-zinc-800/80 rounded-xl resize-none text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/70 focus:border-indigo-500/70 transition-all font-sans leading-relaxed"
+          className="h-full resize-none p-3 text-sm leading-relaxed"
         />
       </div>
 
-      <div className="flex items-center justify-between pt-3 mt-2 border-t border-zinc-800/50">
-        <div className="text-[11px] text-zinc-500 flex gap-2">
-          <span><kbd className="px-1 py-0.5 rounded bg-zinc-800 font-mono text-[10px]">Esc</kbd> 閉じる</span>
-          <span><kbd className="px-1 py-0.5 rounded bg-zinc-800 font-mono text-[10px]">Ctrl+Tab</kbd> 切替</span>
+      <div className="flex items-center justify-between pt-3 mt-2 border-t">
+        <div className="text-[11px] text-muted-foreground flex gap-3 items-center">
+          <span className="flex items-center gap-1">
+            <Kbd>Esc</Kbd> 閉じる
+          </span>
+          <span className="flex items-center gap-1">
+            <Kbd>Ctrl+Tab</Kbd> 切替
+          </span>
         </div>
-        <button
+        <Button
           onClick={handleSubmit}
           disabled={submitting || !memo.trim()}
-          className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-40 disabled:hover:bg-indigo-600 text-white shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+          size="sm"
         >
           {submitting ? "保存中..." : "追記する (Ctrl+Enter)"}
-        </button>
+        </Button>
       </div>
     </div>
   );

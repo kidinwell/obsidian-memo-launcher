@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createTask } from "../services/taskService";
 import { CustomProperty } from "../types/config";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { Kbd } from "./ui/kbd";
 
 interface TaskFormData {
   title: string;
@@ -102,10 +107,10 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 max-h-[260px]">
         {/* Title */}
         <div>
-          <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-            タスクタイトル <span className="text-rose-400">*</span>
-          </label>
-          <input
+          <Label className="text-xs mb-1">
+            タスクタイトル <span className="text-destructive">*</span>
+          </Label>
+          <Input
             ref={titleInputRef}
             data-testid="task-title-input"
             type="text"
@@ -113,49 +118,49 @@ export const TaskForm: React.FC<TaskFormProps> = ({
             onChange={(e) => handleChange("title", e.target.value)}
             placeholder="例: 新規機能の設計レビュー"
             disabled={submitting}
-            className="w-full px-3 py-1.5 text-xs bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/70"
+            className="text-xs"
           />
         </div>
 
         {/* Requester & Due */}
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+            <Label className="text-xs mb-1">
               依頼者
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               value={formData.requester}
               onChange={(e) => handleChange("requester", e.target.value)}
               placeholder="例: 田中"
               disabled={submitting}
-              className="w-full px-3 py-1.5 text-xs bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/70"
+              className="text-xs"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+            <Label className="text-xs mb-1">
               締め切り (Due)
-            </label>
-            <input
+            </Label>
+            <Input
               type="date"
               value={formData.due}
               onChange={(e) => handleChange("due", e.target.value)}
               disabled={submitting}
-              className="w-full px-3 py-1.5 text-xs bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/70"
+              className="text-xs"
             />
           </div>
         </div>
 
         {/* Custom Properties */}
         {customPropertiesConfig.length > 0 && (
-          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-800/40">
+          <div className="grid grid-cols-2 gap-2 pt-1 border-t">
             {customPropertiesConfig.map((prop) => (
               <div key={prop.key}>
-                <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                <Label className="text-xs mb-1">
                   {prop.label}
-                </label>
+                </Label>
                 {prop.type === "number" ? (
-                  <input
+                  <Input
                     type="number"
                     step="any"
                     value={formData.custom_properties[prop.key] ?? ""}
@@ -167,10 +172,10 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                     }
                     placeholder="0"
                     disabled={submitting}
-                    className="w-full px-3 py-1.5 text-xs bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/70"
+                    className="text-xs"
                   />
                 ) : (
-                  <input
+                  <Input
                     type="text"
                     value={formData.custom_properties[prop.key] ?? ""}
                     onChange={(e) =>
@@ -178,7 +183,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                     }
                     placeholder=""
                     disabled={submitting}
-                    className="w-full px-3 py-1.5 text-xs bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/70"
+                    className="text-xs"
                   />
                 )}
               </div>
@@ -188,33 +193,37 @@ export const TaskForm: React.FC<TaskFormProps> = ({
 
         {/* Body Content */}
         <div>
-          <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+          <Label className="text-xs mb-1">
             タスク本文・詳細
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             rows={3}
             value={formData.body}
             onChange={(e) => handleChange("body", e.target.value)}
             placeholder="タスクの詳細や留意事項を入力..."
             disabled={submitting}
-            className="w-full p-2.5 text-xs bg-zinc-900/80 border border-zinc-800 rounded-lg resize-none text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/70 font-sans leading-relaxed"
+            className="text-xs resize-none min-h-[60px]"
           />
         </div>
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-3 mt-2 border-t border-zinc-800/50">
-        <div className="text-[11px] text-zinc-500 flex gap-2">
-          <span><kbd className="px-1 py-0.5 rounded bg-zinc-800 font-mono text-[10px]">Esc</kbd> 閉じる</span>
-          <span><kbd className="px-1 py-0.5 rounded bg-zinc-800 font-mono text-[10px]">Ctrl+Tab</kbd> 切替</span>
+      <div className="flex items-center justify-between pt-3 mt-2 border-t">
+        <div className="text-[11px] text-muted-foreground flex gap-3 items-center">
+          <span className="flex items-center gap-1">
+            <Kbd>Esc</Kbd> 閉じる
+          </span>
+          <span className="flex items-center gap-1">
+            <Kbd>Ctrl+Tab</Kbd> 切替
+          </span>
         </div>
-        <button
+        <Button
           onClick={handleSubmit}
           disabled={submitting || !formData.title.trim()}
-          className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-40 disabled:hover:bg-indigo-600 text-white shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+          size="sm"
         >
           {submitting ? "作成中..." : "タスク作成 (Ctrl+Enter)"}
-        </button>
+        </Button>
       </div>
     </div>
   );
