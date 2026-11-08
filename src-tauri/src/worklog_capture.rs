@@ -1,5 +1,5 @@
 use crate::config::AppConfig;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Datelike, Local, Timelike};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -12,6 +12,16 @@ pub struct ObsidianDailyNotesConfig {
     pub folder: Option<String>,
     #[serde(default)]
     pub template: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct ObsidianAppConfig {
+    #[serde(default, rename = "userLocale")]
+    pub user_locale: Option<String>,
+    #[serde(default)]
+    pub language: Option<String>,
+    #[serde(default)]
+    pub locale: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,21 +38,267 @@ pub struct AppendWorklogResult {
     pub entry_text: String,
 }
 
-pub fn format_date_with_pattern(dt: &DateTime<Local>, pattern: &str) -> String {
-    let yyyy = dt.format("%Y").to_string();
-    let mm = dt.format("%m").to_string();
-    let dd = dt.format("%d").to_string();
-    let hh = dt.format("%H").to_string();
-    let min = dt.format("%M").to_string();
+pub fn get_system_locale() -> String {
+    #[cfg(windows)]
+    {
+        unsafe extern "system" {
+            fn GetUserDefaultLocaleName(lpLocaleName: *mut u16, cchLocaleName: i32) -> i32;
+        }
+        let mut buf = [0u16; 85];
+        let ret = unsafe { GetUserDefaultLocaleName(buf.as_mut_ptr(), buf.len() as i32) };
+        if ret > 0 {
+            let len = (ret - 1) as usize;
+            let name = String::from_utf16_lossy(&buf[..len]);
+            if !name.trim().is_empty() {
+                return name;
+            }
+        }
+    }
 
-    pattern
-        .replace("YYYY", &yyyy)
-        .replace("yyyy", &yyyy)
-        .replace("MM", &mm)
-        .replace("DD", &dd)
-        .replace("dd", &dd)
-        .replace("HH", &hh)
-        .replace("mm", &min)
+    std::env::var("LC_ALL")
+        .or_else(|_| std::env::var("LC_MESSAGES"))
+        .or_else(|_| std::env::var("LANG"))
+        .unwrap_or_else(|_| "en".to_string())
+}
+
+pub fn is_japanese_locale(locale: &str) -> bool {
+    let lower = locale.to_lowercase();
+    lower.starts_with("ja")
+}
+
+pub fn read_obsidian_app_locale(vault_path: &Path) -> Option<String> {
+    let app_file = vault_path.join(".obsidian").join("app.json");
+    if app_file.exists() {
+        if let Ok(content) = fs::read_to_string(app_file) {
+            if let Ok(cfg) = serde_json::from_str::<ObsidianAppConfig>(&content) {
+                return cfg
+                    .user_locale
+                    .or(cfg.language)
+                    .or(cfg.locale)
+                    .filter(|l| !l.trim().is_empty());
+            }
+        }
+    }
+    None
+}
+
+pub fn resolve_locale(vault_path: &Path) -> String {
+    if let Some(locale) = read_obsidian_app_locale(vault_path) {
+        return locale;
+    }
+    get_system_locale()
+}
+
+pub fn format_moment_date<Tz: chrono::TimeZone>(
+    dt: &DateTime<Tz>,
+    pattern: &str,
+    locale: Option<&str>,
+) -> String {
+    let loc = locale
+        .map(|s| s.to_string())
+        .unwrap_or_else(get_system_locale);
+    let is_ja = is_japanese_locale(&loc);
+
+    let year = dt.year();
+    let month = dt.month(); // 1..=12
+    let day = dt.day(); // 1..=31
+    let hour24 = dt.hour(); // 0..=23
+    let minute = dt.minute(); // 0..=59
+    let second = dt.second(); // 0..=59
+    let weekday_sunday_idx = dt.weekday().num_days_from_sunday() as usize; // 0..=6 (0 = Sunday)
+    let month_idx = (month.saturating_sub(1) as usize).min(11);
+
+    let yyyy_str = format!("{:04}", year);
+    let yy_str = format!("{:02}", year.rem_euclid(100));
+
+    let en_months_full = [
+        "January", "February", "March", "April", "May", "June", "July", "August", "September",
+        "October", "November", "December",
+    ];
+    let en_months_short = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    let ja_months = [
+        "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月",
+    ];
+
+    let mmmm_str = if is_ja {
+        ja_months[month_idx]
+    } else {
+        en_months_full[month_idx]
+    };
+    let mmm_str = if is_ja {
+        ja_months[month_idx]
+    } else {
+        en_months_short[month_idx]
+    };
+    let mm_str = format!("{:02}", month);
+    let m_str = format!("{}", month);
+
+    let dd_str = format!("{:02}", day);
+    let d_str = format!("{}", day);
+
+    let en_weekdays_full = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+    ];
+    let en_weekdays_short = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    let en_weekdays_min = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+    let ja_weekdays_full = [
+        "日曜日",
+        "月曜日",
+        "火曜日",
+        "水曜日",
+        "木曜日",
+        "金曜日",
+        "土曜日",
+    ];
+    let ja_weekdays_short = ["日", "月", "火", "水", "木", "金", "土"];
+    let ja_weekdays_min = ["日", "月", "火", "水", "木", "金", "土"];
+
+    let dddd_str = if is_ja {
+        ja_weekdays_full[weekday_sunday_idx]
+    } else {
+        en_weekdays_full[weekday_sunday_idx]
+    };
+    let ddd_str = if is_ja {
+        ja_weekdays_short[weekday_sunday_idx]
+    } else {
+        en_weekdays_short[weekday_sunday_idx]
+    };
+    let min_dd_str = if is_ja {
+        ja_weekdays_min[weekday_sunday_idx]
+    } else {
+        en_weekdays_min[weekday_sunday_idx]
+    };
+    let weekday_num_str = format!("{}", weekday_sunday_idx);
+
+    let hh24_str = format!("{:02}", hour24);
+    let h24_str = format!("{}", hour24);
+
+    let h12 = if hour24 == 0 {
+        12
+    } else if hour24 > 12 {
+        hour24 - 12
+    } else {
+        hour24
+    };
+    let hh12_str = format!("{:02}", h12);
+    let h12_str = format!("{}", h12);
+
+    let min_str = format!("{:02}", minute);
+    let m_minute_str = format!("{}", minute);
+
+    let sec_str = format!("{:02}", second);
+    let s_sec_str = format!("{}", second);
+
+    let a_upper_str = if is_ja {
+        if hour24 < 12 {
+            "午前"
+        } else {
+            "午後"
+        }
+    } else if hour24 < 12 {
+        "AM"
+    } else {
+        "PM"
+    };
+    let a_lower_str = if is_ja {
+        if hour24 < 12 {
+            "午前"
+        } else {
+            "午後"
+        }
+    } else if hour24 < 12 {
+        "am"
+    } else {
+        "pm"
+    };
+
+    let quarter_str = format!("{}", ((month - 1) / 3) + 1);
+
+    // List of tokens and their string replacements, ordered by descending token length
+    let token_replacements: [(&str, &str); 25] = [
+        // Length 4
+        ("YYYY", &yyyy_str),
+        ("yyyy", &yyyy_str),
+        ("MMMM", mmmm_str),
+        ("dddd", dddd_str),
+        // Length 3
+        ("MMM", mmm_str),
+        ("ddd", ddd_str),
+        // Length 2
+        ("YY", &yy_str),
+        ("yy", &yy_str),
+        ("MM", &mm_str),
+        ("DD", &dd_str),
+        ("dd", min_dd_str),
+        ("HH", &hh24_str),
+        ("hh", &hh12_str),
+        ("mm", &min_str),
+        ("ss", &sec_str),
+        // Length 1
+        ("M", &m_str),
+        ("D", &d_str),
+        ("d", &weekday_num_str),
+        ("H", &h24_str),
+        ("h", &h12_str),
+        ("m", &m_minute_str),
+        ("s", &s_sec_str),
+        ("A", a_upper_str),
+        ("a", a_lower_str),
+        ("Q", &quarter_str),
+    ];
+
+    let mut result = String::new();
+    let mut i = 0;
+
+    while i < pattern.len() {
+        let remainder = &pattern[i..];
+
+        // 1. Check for [...] escape bracket
+        if remainder.starts_with('[') {
+            if let Some(close_pos) = remainder.find(']') {
+                let inside = &remainder[1..close_pos];
+                result.push_str(inside);
+                i += close_pos + 1;
+                continue;
+            } else {
+                result.push_str(&remainder[1..]);
+                break;
+            }
+        }
+
+        // 2. Check for tokens in descending order of length
+        let mut matched = false;
+        for &(token, value) in &token_replacements {
+            if remainder.starts_with(token) {
+                result.push_str(value);
+                i += token.len();
+                matched = true;
+                break;
+            }
+        }
+
+        // 3. Fallback to literal char
+        if !matched {
+            let ch = remainder.chars().next().unwrap();
+            result.push(ch);
+            i += ch.len_utf8();
+        }
+    }
+
+    result
+}
+
+pub fn format_date_with_pattern(dt: &DateTime<Local>, pattern: &str) -> String {
+    format_moment_date(dt, pattern, None)
 }
 
 pub fn read_obsidian_daily_notes_config(vault_path: &Path) -> Option<ObsidianDailyNotesConfig> {
@@ -60,10 +316,12 @@ pub struct ResolvedDailySettings {
     pub folder: String,
     pub format: String,
     pub template_path: Option<PathBuf>,
+    pub locale: Option<String>,
 }
 
 pub fn resolve_daily_settings(vault_path: &Path) -> ResolvedDailySettings {
     let obs_cfg = read_obsidian_daily_notes_config(vault_path).unwrap_or_default();
+    let locale = resolve_locale(vault_path);
 
     let folder = obs_cfg
         .folder
@@ -97,6 +355,7 @@ pub fn resolve_daily_settings(vault_path: &Path) -> ResolvedDailySettings {
         folder,
         format,
         template_path,
+        locale: Some(locale),
     }
 }
 
@@ -105,7 +364,7 @@ pub fn ensure_daily_note_exists(
     settings: &ResolvedDailySettings,
     today_dt: &DateTime<Local>,
 ) -> Result<PathBuf, String> {
-    let formatted_date = format_date_with_pattern(today_dt, &settings.format);
+    let formatted_date = format_moment_date(today_dt, &settings.format, settings.locale.as_deref());
     let target_dir = if settings.folder.trim().is_empty() {
         vault_path.to_path_buf()
     } else {
@@ -307,6 +566,99 @@ mod tests {
 
         let formatted_slash = format_date_with_pattern(&dt, "YYYY/MM/DD");
         assert_eq!(formatted_slash, dt.format("%Y/%m/%d").to_string());
+    }
+
+    #[test]
+    fn test_format_moment_date_comprehensive() {
+        use chrono::TimeZone;
+        let dt = Local.with_ymd_and_hms(2026, 11, 8, 14, 5, 9).unwrap();
+
+        // 1. Japanese weekday tests
+        assert_eq!(
+            format_moment_date(&dt, "YYYY-MM-DD(ddd)", Some("ja")),
+            "2026-11-08(日)"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "YYYY-MM-DD(dddd)", Some("ja")),
+            "2026-11-08(日曜日)"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "YYYY-MM-DD(dd)", Some("ja")),
+            "2026-11-08(日)"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "YYYY-MM-DD(d)", Some("ja")),
+            "2026-11-08(0)"
+        );
+
+        // 2. English weekday tests
+        assert_eq!(
+            format_moment_date(&dt, "YYYY-MM-DD(ddd)", Some("en")),
+            "2026-11-08(Sun)"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "YYYY-MM-DD(dddd)", Some("en")),
+            "2026-11-08(Sunday)"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "YYYY-MM-DD(dd)", Some("en")),
+            "2026-11-08(Su)"
+        );
+
+        // 3. Collision avoidance: ddd is not mangled by dd
+        assert_ne!(
+            format_moment_date(&dt, "YYYY-MM-DD(ddd)", Some("ja")),
+            "2026-11-08(08d)"
+        );
+
+        // 4. Bracket escaping [...]
+        assert_eq!(
+            format_moment_date(&dt, "[Today is] YYYY-MM-DD [ddd]", Some("ja")),
+            "Today is 2026-11-08 ddd"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "YYYY-[MM]-DD", Some("ja")),
+            "2026-MM-08"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "[Unclosed bracket", Some("ja")),
+            "Unclosed bracket"
+        );
+
+        // 5. Month and Year tokens
+        assert_eq!(
+            format_moment_date(&dt, "YYYY/YY/yyyy/yy", Some("en")),
+            "2026/26/2026/26"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "MMMM D, YYYY", Some("en")),
+            "November 8, 2026"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "MMM D, YYYY", Some("en")),
+            "Nov 8, 2026"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "MMMM D日 YYYY年", Some("ja")),
+            "11月 8日 2026年"
+        );
+
+        // 6. Time tokens and AM/PM
+        assert_eq!(
+            format_moment_date(&dt, "HH:mm:ss", Some("en")),
+            "14:05:09"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "hh:m:s A", Some("en")),
+            "02:5:9 PM"
+        );
+        assert_eq!(
+            format_moment_date(&dt, "hh:mm A", Some("ja")),
+            "02:05 午後"
+        );
+
+        // 7. Quarter
+        assert_eq!(format_moment_date(&dt, "[Q]Q", Some("en")), "Q4");
     }
 
     #[test]
@@ -588,6 +940,113 @@ Good day.
 
         assert!(pos_entry1_2 < pos_entry2_2);
         assert!(pos_entry2_2 < pos_anchor_2);
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_read_obsidian_app_locale() {
+        let temp_dir = env::temp_dir().join(format!("obs_locale_test_{}", std::process::id()));
+        let obs_dir = temp_dir.join(".obsidian");
+        fs::create_dir_all(&obs_dir).unwrap();
+
+        // 1. When userLocale is set
+        fs::write(obs_dir.join("app.json"), r#"{"userLocale": "ja"}"#).unwrap();
+        assert_eq!(read_obsidian_app_locale(&temp_dir), Some("ja".to_string()));
+
+        // 2. When language is set instead
+        fs::write(obs_dir.join("app.json"), r#"{"language": "ja-JP"}"#).unwrap();
+        assert_eq!(
+            read_obsidian_app_locale(&temp_dir),
+            Some("ja-JP".to_string())
+        );
+
+        // 3. When app.json does not exist
+        let _ = fs::remove_file(obs_dir.join("app.json"));
+        assert_eq!(read_obsidian_app_locale(&temp_dir), None);
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_ensure_daily_note_exists_with_moment_locale() {
+        use chrono::TimeZone;
+        let temp_dir = env::temp_dir().join(format!("obs_ensure_moment_{}", std::process::id()));
+        let obs_dir = temp_dir.join(".obsidian");
+        fs::create_dir_all(&obs_dir).unwrap();
+
+        // Configure daily notes format with weekday token: YYYY-MM-DD(ddd)
+        let daily_cfg = serde_json::json!({
+            "format": "YYYY-MM-DD(ddd)",
+            "folder": "Daily"
+        });
+        fs::write(obs_dir.join("daily-notes.json"), daily_cfg.to_string()).unwrap();
+
+        // Configure app.json with Japanese locale
+        fs::write(obs_dir.join("app.json"), r#"{"userLocale": "ja"}"#).unwrap();
+
+        let resolved = resolve_daily_settings(&temp_dir);
+        assert_eq!(resolved.locale, Some("ja".to_string()));
+        assert_eq!(resolved.format, "YYYY-MM-DD(ddd)");
+
+        // 2026-11-08 was Sunday (日)
+        let dt = Local.with_ymd_and_hms(2026, 11, 8, 10, 0, 0).unwrap();
+        let path = ensure_daily_note_exists(&temp_dir, &resolved, &dt)
+            .expect("Daily note creation should succeed");
+
+        assert!(path.exists());
+        assert_eq!(
+            path.file_name().unwrap().to_str().unwrap(),
+            "2026-11-08(日).md"
+        );
+
+        let content = fs::read_to_string(&path).unwrap();
+        assert!(content.contains("# 2026-11-08(日)"));
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_ensure_daily_note_exists_prevents_duplicate_creation() {
+        use chrono::TimeZone;
+        let temp_dir = env::temp_dir().join(format!("obs_duplicate_prevent_{}", std::process::id()));
+        let obs_dir = temp_dir.join(".obsidian");
+        let daily_dir = temp_dir.join("Daily");
+        fs::create_dir_all(&obs_dir).unwrap();
+        fs::create_dir_all(&daily_dir).unwrap();
+
+        // Configure daily notes with format YYYY-MM-DD(ddd)
+        let daily_cfg = serde_json::json!({
+            "format": "YYYY-MM-DD(ddd)",
+            "folder": "Daily"
+        });
+        fs::write(obs_dir.join("daily-notes.json"), daily_cfg.to_string()).unwrap();
+        fs::write(obs_dir.join("app.json"), r#"{"userLocale": "ja"}"#).unwrap();
+
+        // Pre-create the daily note with custom content
+        let existing_file = daily_dir.join("2026-11-08(日).md");
+        let initial_content = "# 2026-11-08(日)\n\n## 既存セクション\n既存の内容を保持\n\n## 作業ログ\n";
+        fs::write(&existing_file, initial_content).unwrap();
+
+        let resolved = resolve_daily_settings(&temp_dir);
+        let dt = Local.with_ymd_and_hms(2026, 11, 8, 14, 0, 0).unwrap();
+
+        // Call ensure_daily_note_exists
+        let path = ensure_daily_note_exists(&temp_dir, &resolved, &dt)
+            .expect("Should resolve existing note");
+
+        assert_eq!(path, existing_file);
+
+        // Verify the existing file was NOT overwritten or reset
+        let content_after = fs::read_to_string(&path).unwrap();
+        assert_eq!(content_after, initial_content);
+
+        // Verify no other files were created in the Daily folder
+        let files: Vec<_> = fs::read_dir(&daily_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .collect();
+        assert_eq!(files.len(), 1);
 
         let _ = fs::remove_dir_all(&temp_dir);
     }

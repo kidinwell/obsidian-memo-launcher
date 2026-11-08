@@ -47,6 +47,11 @@
 - [x] 8.2 フロントエンド設定画面（`SettingsModal.tsx`）および設定サービス・型定義からデイリーノート関連の入力項目（保存先フォルダ、日付書式、テンプレート）を削除し、UI を整理する
 - [x] 8.3 デイリーノート自動生成・追記および設定保存の E2E / 統合テストを更新し、Obsidian コア設定のみで正しく動作することを検証する
 
+## 9. Moment.js Daily Note Date Format & Weekday Support
+
+- [x] 9.1 Moment.js 互換の日付フォーマッタ（最長一致トークン置換、`[...]` エスケープ対応、`ddd` / `dddd` / `dd` などのトークン衝突回避、およびロケールに応じた曜日置換）を Rust 側で実装し、単体テストを追加する
+- [x] 9.2 デイリーノート解決処理（`ensure_daily_note_exists`）でロケール（`.obsidian/app.json` またはシステムロケール）に基づくファイル名（例: `YYYY-MM-DD(ddd)` → `2026-11-08(日).md`）が正しく認識され、既存ノートの重複作成を防ぐことを検証する
+
 ## Workflow follow-up
 
 - Archive the change after the project's review requirements are satisfied.

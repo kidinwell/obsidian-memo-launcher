@@ -353,3 +353,80 @@ fn test_e2e_config_save_and_load_workflow() {
 
     let _ = fs::remove_dir_all(&temp_dir);
 }
+
+#[test]
+fn test_e2e_worklog_with_moment_weekday_and_obsidian_locale() {
+    let count = COUNTER.fetch_add(1, Ordering::SeqCst);
+    let vault_path = env::temp_dir().join(format!("obsidian_e2e_moment_vault_{}_{}", std::process::id(), count));
+    if vault_path.exists() {
+        let _ = fs::remove_dir_all(&vault_path);
+    }
+    fs::create_dir_all(&vault_path).unwrap();
+
+    let obs_dir = vault_path.join(".obsidian");
+    fs::create_dir_all(&obs_dir).unwrap();
+
+    let daily_cfg = serde_json::json!({
+        "format": "YYYY-MM-DD(ddd)",
+        "folder": "DailyNotes",
+        "template": "Templates/Daily"
+    });
+    fs::write(obs_dir.join("daily-notes.json"), daily_cfg.to_string()).unwrap();
+    fs::write(obs_dir.join("app.json"), r#"{"userLocale": "ja"}"#).unwrap();
+
+    let tpl_dir = vault_path.join("Templates");
+    fs::create_dir_all(&tpl_dir).unwrap();
+    let tpl_content = "# {{title}}\n\n## 今日の目標\n\n## 作業ログ\n\n## 振り返り\n";
+    fs::write(tpl_dir.join("Daily.md"), tpl_content).unwrap();
+
+    let config = AppConfig {
+        vault_path: vault_path.to_string_lossy().to_string(),
+        tasks_folder: "Tasks".to_string(),
+        default_mode: "worklog".to_string(),
+        worklog_section_heading: "## 作業ログ".to_string(),
+        worklog_use_anchor: false,
+        worklog_anchor_comment: "%% worklog %%".to_string(),
+        global_shortcut: "Super+Shift+Q".to_string(),
+        auto_hide_on_blur: true,
+        task_custom_properties: Vec::new(),
+    };
+
+    // 1. First append: creates note according to Moment.js format and Japanese locale
+    let log1 = WorklogInput {
+        memo: "仕様策定と設計検討".to_string(),
+        timestamp: Some("10:00".to_string()),
+    };
+    let res1 = append_worklog(&log1, &config).expect("First append must succeed");
+    assert!(res1.success);
+
+    let note_path = PathBuf::from(&res1.daily_note_path);
+    assert!(note_path.exists());
+
+    // 2. Second append: must reuse the existing note without duplicate creation
+    let log2 = WorklogInput {
+        memo: "Moment.js 日付フォーマッタの実装".to_string(),
+        timestamp: Some("15:30".to_string()),
+    };
+    let res2 = append_worklog(&log2, &config).expect("Second append must succeed");
+    assert!(res2.success);
+    assert_eq!(res1.daily_note_path, res2.daily_note_path);
+
+    // Verify only ONE file was created in DailyNotes
+    let daily_notes_dir = vault_path.join("DailyNotes");
+    let files: Vec<_> = fs::read_dir(&daily_notes_dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .collect();
+    assert_eq!(files.len(), 1);
+
+    // Verify both entries are in the file in order
+    let final_content = fs::read_to_string(&note_path).unwrap();
+    assert!(final_content.contains("10:00\n仕様策定と設計検討"));
+    assert!(final_content.contains("15:30\nMoment.js 日付フォーマッタの実装"));
+
+    let pos_log1 = final_content.find("10:00\n仕様策定と設計検討").unwrap();
+    let pos_log2 = final_content.find("15:30\nMoment.js 日付フォーマッタの実装").unwrap();
+    assert!(pos_log1 < pos_log2);
+
+    let _ = fs::remove_dir_all(&vault_path);
+}

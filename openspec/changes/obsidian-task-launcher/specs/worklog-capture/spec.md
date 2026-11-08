@@ -14,19 +14,23 @@ The system SHALL provide a multi-line text input field in Worklog mode that acce
 - **THEN** the input control SHALL preserve all line breaks and indentation without truncation
 
 ### Requirement: Daily note initialization from template
-The system SHALL ensure the target daily note for the current date exists before appending log entries, initializing it using the template, folder, and date format specified in the Vault's Obsidian core plugin settings (.obsidian/daily-notes.json).
+The system SHALL ensure the target daily note for the current date exists before appending log entries, initializing it using the template, folder, and date format specified in the Vault's Obsidian core plugin settings (.obsidian/daily-notes.json). The date format SHALL support Moment.js token syntax, including weekday tokens and locale-aware resolution.
 
 #### Scenario: Initializing note using Obsidian daily notes settings
 - **WHEN** today's daily note does not exist and `.obsidian/daily-notes.json` specifies folder, format, and template
 - **THEN** the system SHALL create the daily note at `[Vault]/[folder]/[formatted_date].md` initialized with content loaded from the template note in the Vault
+
+#### Scenario: Formatting date pattern with Moment.js tokens and weekdays
+- **WHEN** `.obsidian/daily-notes.json` specifies a format with Moment.js weekday tokens (e.g. `YYYY-MM-DD(ddd)`)
+- **THEN** the system SHALL resolve the date using the appropriate locale (e.g. Japanese `日` for `ddd` on Sunday), avoiding greedy token collision (such as `dd` corrupting `ddd` into `08d`), and correctly recognize existing files like `2026-11-08(日).md`
 
 #### Scenario: Fallback when Obsidian daily notes config is absent
 - **WHEN** today's daily note does not exist and `.obsidian/daily-notes.json` is missing or does not specify a template
 - **THEN** the system SHALL create the daily note using Obsidian core plugin defaults (date format `YYYY-MM-DD`, root folder, no template)
 
 #### Scenario: Daily note already exists
-- **WHEN** the daily note for today already exists in the Vault
-- **THEN** the system SHALL read the existing note and preserve all existing sections and contents
+- **WHEN** the daily note for today matching the resolved Moment.js filename (e.g. `2026-11-08(日).md`) already exists in the target folder
+- **THEN** the system SHALL read the existing note and preserve all existing sections and contents without creating duplicate or corrupted files
 
 ### Requirement: Chronological insertion under work log section
 The system SHALL append new work log entries under the configured section heading (default: ## 作業ログ) in chronological order without modifying other sections.

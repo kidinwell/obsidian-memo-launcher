@@ -22,7 +22,7 @@ The system SHALL automatically inspect and synchronize settings from the Vault's
 
 #### Scenario: Automatic detection of daily notes settings
 - **WHEN** a valid Vault path is configured and `.obsidian/daily-notes.json` exists
-- **THEN** the system SHALL parse `format`, `folder`, and `template` from the file to resolve daily note creation behavior
+- **THEN** the system SHALL parse `format`, `folder`, and `template` from the file to resolve daily note creation behavior, interpreting `format` via Moment.js token rules and resolving weekday/month names according to the Vault's configured language or system locale
 
 #### Scenario: Missing daily notes config file
 - **WHEN** `.obsidian/daily-notes.json` does not exist in the configured Vault
