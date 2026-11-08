@@ -10,6 +10,8 @@ export interface AppConfig {
   tasks_folder: string;
   default_mode: "worklog" | "task";
   worklog_section_heading: string;
+  worklog_use_anchor: boolean;
+  worklog_anchor_comment: string;
   daily_notes_folder: string;
   daily_note_format: string;
   daily_note_template_path: string;

@@ -22,6 +22,10 @@ pub struct AppConfig {
     pub default_mode: String,
     #[serde(default = "default_worklog_section_heading")]
     pub worklog_section_heading: String,
+    #[serde(default = "default_worklog_use_anchor")]
+    pub worklog_use_anchor: bool,
+    #[serde(default = "default_worklog_anchor_comment")]
+    pub worklog_anchor_comment: String,
     #[serde(default = "default_daily_notes_folder")]
     pub daily_notes_folder: String,
     #[serde(default = "default_daily_note_format")]
@@ -46,6 +50,14 @@ fn default_mode() -> String {
 
 fn default_worklog_section_heading() -> String {
     "## 作業ログ".to_string()
+}
+
+fn default_worklog_use_anchor() -> bool {
+    false
+}
+
+fn default_worklog_anchor_comment() -> String {
+    "%% worklog %%".to_string()
 }
 
 fn default_daily_notes_folder() -> String {
@@ -80,6 +92,8 @@ impl Default for AppConfig {
             tasks_folder: default_tasks_folder(),
             default_mode: default_mode(),
             worklog_section_heading: default_worklog_section_heading(),
+            worklog_use_anchor: default_worklog_use_anchor(),
+            worklog_anchor_comment: default_worklog_anchor_comment(),
             daily_notes_folder: default_daily_notes_folder(),
             daily_note_format: default_daily_note_format(),
             daily_note_template_path: String::new(),
@@ -157,6 +171,8 @@ mod tests {
         assert_eq!(default_cfg, deserialized);
         assert_eq!(deserialized.default_mode, "worklog");
         assert_eq!(deserialized.worklog_section_heading, "## 作業ログ");
+        assert_eq!(deserialized.worklog_use_anchor, false);
+        assert_eq!(deserialized.worklog_anchor_comment, "%% worklog %%");
         assert_eq!(deserialized.tasks_folder, "Tasks");
         assert_eq!(deserialized.global_shortcut, "Super+Shift+Q");
     }
@@ -168,6 +184,8 @@ mod tests {
             "tasks_folder": "MyTasks",
             "default_mode": "task",
             "worklog_section_heading": "## 業務ログ",
+            "worklog_use_anchor": true,
+            "worklog_anchor_comment": "<!-- worklog -->",
             "daily_notes_folder": "Journal",
             "daily_note_format": "YYYY/MM/DD",
             "daily_note_template_path": "Templates/Daily.md",
@@ -189,6 +207,8 @@ mod tests {
         assert_eq!(cfg.tasks_folder, "MyTasks");
         assert_eq!(cfg.default_mode, "task");
         assert_eq!(cfg.worklog_section_heading, "## 業務ログ");
+        assert_eq!(cfg.worklog_use_anchor, true);
+        assert_eq!(cfg.worklog_anchor_comment, "<!-- worklog -->");
         assert_eq!(cfg.auto_hide_on_blur, false);
         assert_eq!(cfg.task_custom_properties.len(), 1);
         assert_eq!(cfg.task_custom_properties[0].key, "priority");

@@ -66,6 +66,8 @@ Good day.
             tasks_folder: "Tasks".to_string(),
             default_mode: "worklog".to_string(),
             worklog_section_heading: "## 作業ログ".to_string(),
+            worklog_use_anchor: false,
+            worklog_anchor_comment: "%% worklog %%".to_string(),
             daily_notes_folder: "Daily".to_string(),
             daily_note_format: "YYYY-MM-DD".to_string(),
             daily_note_template_path: "Templates/DailyTemplate.md".to_string(),
@@ -200,4 +202,94 @@ fn test_e2e_worklog_capture_workflow() {
     // Verify existing sections were not modified or corrupted
     assert!(final_content.contains("## 今日の目標\n- [ ] 目標1"));
     assert!(final_content.contains("Good day."));
+}
+
+#[test]
+fn test_e2e_worklog_with_anchor_template_workflow() {
+    let vault = TestVault::setup();
+    let mut config = vault.config();
+    config.worklog_use_anchor = true;
+    config.worklog_anchor_comment = "%% worklog %%".to_string();
+
+    // Overwrite template with %% worklog %% anchor comment
+    let tpl_path = vault.vault_path.join("Templates").join("DailyTemplate.md");
+    let tpl_content = r#"---
+type: daily
+created: {{date}}
+---
+
+# {{title}}
+
+## 今日の目標
+- [ ] 今日の目標を達成する
+
+## 作業ログ
+
+%% worklog %%
+
+## 振り返り
+お疲れ様でした。
+"#;
+    fs::write(&tpl_path, tpl_content).unwrap();
+
+    // 1. First entry: Initializes daily note from template and inserts before anchor
+    let log1 = WorklogInput {
+        memo: "朝会参加\n- スプリントタスク確認".to_string(),
+        timestamp: Some("09:15".to_string()),
+    };
+    let res1 = append_worklog(&log1, &config).expect("First log append with anchor must succeed");
+    assert!(res1.success);
+
+    let daily_path = PathBuf::from(&res1.daily_note_path);
+    assert!(daily_path.exists());
+
+    let content1 = fs::read_to_string(&daily_path).unwrap();
+    assert!(content1.contains("type: daily"));
+    assert!(content1.contains("## 今日の目標\n- [ ] 今日の目標を達成する"));
+    assert!(content1.contains("09:15\n朝会参加\n- スプリントタスク確認"));
+    assert!(content1.contains("%% worklog %%"));
+    assert!(content1.contains("## 振り返り\nお疲れ様でした。"));
+
+    let log1_pos_init = content1.find("09:15\n朝会参加").unwrap();
+    let anchor_pos_init = content1.find("%% worklog %%").unwrap();
+    let reflect_pos_init = content1.find("## 振り返り").unwrap();
+    assert!(log1_pos_init < anchor_pos_init);
+    assert!(anchor_pos_init < reflect_pos_init);
+
+    // 2. Second entry: Insert chronologically before anchor
+    let log2 = WorklogInput {
+        memo: "アンカーコメント追記のE2Eテスト実装".to_string(),
+        timestamp: Some("13:30".to_string()),
+    };
+    let res2 = append_worklog(&log2, &config).expect("Second log append with anchor must succeed");
+    assert!(res2.success);
+
+    // 3. Third entry: Afternoon log before anchor
+    let log3 = WorklogInput {
+        memo: "日報作成と退勤".to_string(),
+        timestamp: Some("18:00".to_string()),
+    };
+    let res3 = append_worklog(&log3, &config).expect("Third log append with anchor must succeed");
+    assert!(res3.success);
+
+    let final_content = fs::read_to_string(&daily_path).unwrap();
+
+    // Verify all 3 entries are present in order before %% worklog %%
+    let pos_heading = final_content.find("## 作業ログ").unwrap();
+    let pos_log1 = final_content.find("09:15\n朝会参加").unwrap();
+    let pos_log2 = final_content.find("13:30\nアンカーコメント追記").unwrap();
+    let pos_log3 = final_content.find("18:00\n日報作成と退勤").unwrap();
+    let pos_anchor = final_content.find("%% worklog %%").unwrap();
+    let pos_reflect = final_content.find("## 振り返り").unwrap();
+
+    assert!(pos_heading < pos_log1);
+    assert!(pos_log1 < pos_log2);
+    assert!(pos_log2 < pos_log3);
+    assert!(pos_log3 < pos_anchor);
+    assert!(pos_anchor < pos_reflect);
+
+    // Verify other sections remain intact
+    assert!(final_content.contains("type: daily"));
+    assert!(final_content.contains("## 今日の目標\n- [ ] 今日の目標を達成する"));
+    assert!(final_content.contains("## 振り返り\nお疲れ様でした。"));
 }

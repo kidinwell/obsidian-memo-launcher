@@ -239,6 +239,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             />
           </div>
 
+          {/* Anchor Settings */}
+          <div className="p-3 bg-zinc-950/60 border border-zinc-800/80 rounded-xl space-y-2.5">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="anchor-toggle"
+                checked={config.worklog_use_anchor}
+                onChange={(e) => handleChange("worklog_use_anchor", e.target.checked)}
+                className="w-4 h-4 rounded text-indigo-600 bg-zinc-950 border-zinc-800 focus:ring-indigo-500 cursor-pointer"
+              />
+              <label htmlFor="anchor-toggle" className="text-xs text-zinc-300 select-none cursor-pointer font-medium">
+                アンカーコメント位置への追記を優先する
+              </label>
+            </div>
+            <div>
+              <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                アンカーコメント文字列
+              </label>
+              <input
+                type="text"
+                value={config.worklog_anchor_comment}
+                onChange={(e) => handleChange("worklog_anchor_comment", e.target.value)}
+                placeholder="%% worklog %%"
+                disabled={!config.worklog_use_anchor}
+                className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed font-mono text-[11px]"
+              />
+              <p className="mt-1 text-[10px] text-zinc-500">
+                有効時、デイリーノート内のこの行の直前に作業ログを挿入します（未検出時は上記見出しへフォールバック）。
+              </p>
+            </div>
+          </div>
+
           {/* Shortcut & Behavior */}
           <div className="grid grid-cols-2 gap-3">
             <div>

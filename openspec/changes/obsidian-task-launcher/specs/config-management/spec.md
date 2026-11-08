@@ -67,3 +67,15 @@ The system SHALL allow users to define additional frontmatter properties to be r
 #### Scenario: Adding custom task property definition
 - **WHEN** configuration defines an extra property with key `estimate`, label `見積もり (h)`, and type `number`
 - **THEN** the Task creation form SHALL render an input field for `estimate` and include `estimate: <value>` in generated task note frontmatter
+
+### Requirement: Worklog anchor comment configuration
+The system SHALL allow users to enable explicit anchor comment insertion and specify a custom anchor comment string.
+
+#### Scenario: Default anchor settings
+- **WHEN** application configuration is loaded or initialized
+- **THEN** `worklog_use_anchor` SHALL default to `false` and `worklog_anchor_comment` SHALL default to `%% worklog %%`
+
+#### Scenario: Customizing anchor settings
+- **WHEN** the user sets `worklog_use_anchor: true` and `worklog_anchor_comment: "<!-- worklog -->"`
+- **THEN** the system SHALL persist the settings and use them when resolving worklog insertions
+

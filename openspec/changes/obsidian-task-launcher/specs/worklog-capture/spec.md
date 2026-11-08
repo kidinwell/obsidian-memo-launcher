@@ -55,3 +55,19 @@ The system SHALL format each work log entry with a two-digit hour and minute tim
   - PR #123 の確認
   ```
   followed by an empty line delimiter
+
+### Requirement: Optional explicit anchor comment insertion
+The system SHALL support an optional explicit anchor comment insertion mode that appends work log entries directly before a designated anchor comment in the daily note.
+
+#### Scenario: Appending with anchor mode enabled and anchor present
+- **WHEN** configuration has `worklog_use_anchor: true` and the daily note contains the configured anchor line (default: `%% worklog %%`)
+- **THEN** the system SHALL insert the worklog entry immediately before the anchor line, preserving the anchor comment for future entries
+
+#### Scenario: Fallback when anchor comment is missing
+- **WHEN** configuration has `worklog_use_anchor: true` but the daily note lacks the designated anchor comment
+- **THEN** the system SHALL safely fall back to the default heading-based insertion logic under `worklog_section_heading`
+
+#### Scenario: Default behavior when anchor mode is disabled
+- **WHEN** configuration has `worklog_use_anchor: false` (default)
+- **THEN** the system SHALL append worklog entries under `worklog_section_heading` using the standard heading scanning logic, ignoring any anchor comments
+

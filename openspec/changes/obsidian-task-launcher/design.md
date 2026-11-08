@@ -92,10 +92,15 @@ Windows標準の `Win+R` のように左手で瞬時に起動でき、リソー�
 - **デイリーノートへの作業ログ追記**:
   - 本日ノートのパス解決: `{vault_path}/{daily_folder}/{formatted_today}.md`
   - ファイルが存在しない場合: 解決されたテンプレートを読み込み、日付プレースホルダーを本日日付に置換して初期ノートを生成。
-  - **設定可能なセクション走査**:
-    - 設定された見出し文字列 `worklog_section_heading`（デフォルト: `## 作業ログ`）を行単位で走査。
-    - 該当見出しを検出した場合、次の同レベル見出し（例: `## 振り返り`）が出現する直前、またはファイルの末尾にログを挿入。
-    - 該当見出しが見つからない場合は、ファイルの末尾に `\n\n{worklog_section_heading}\n\n` を追加した上で追記。
+  - **挿入位置解決ロジック（アンカーオプション対応）**:
+    - **アンカー優先モード (`worklog_use_anchor: true`)**:
+      - デイリーノートを行単位で走査し、`worklog_anchor_comment`（デフォルト: `%% worklog %%`）に一致する行を検索。
+      - アンカーが見つかった場合、その**アンカー行の直前**にエントリを挿入し、アンカー行自体は次回追記のために保持する。
+      - アンカーが見つからない場合は、下記の見出し走査へフォールバックする。
+    - **見出し走査モード (`worklog_use_anchor: false`, デフォルト)**:
+      - 設定された見出し文字列 `worklog_section_heading`（デフォルト: `## 作業ログ`）を行単位で走査。
+      - 該当見出しを検出した場合、次の同レベル見出し（例: `## 振り返り`）が出現する直前、またはファイルの末尾にログを挿入。
+      - 該当見出しが見つからない場合は、ファイルの末尾に `\n\n{worklog_section_heading}\n\n` を追加した上で追記。
   - ログエントリフォーマット（WebVTT風、タイムスタンプ + メモ + 空行）:
 
     ```markdown
@@ -116,6 +121,8 @@ Windows標準の `Win+R` のように左手で瞬時に起動でき、リソー�
     "tasks_folder": "Tasks",
     "default_mode": "worklog",
     "worklog_section_heading": "## 作業ログ",
+    "worklog_use_anchor": false,
+    "worklog_anchor_comment": "%% worklog %%",
     "daily_notes_folder": "Daily",
     "daily_note_format": "YYYY-MM-DD",
     "daily_note_template_path": "",
