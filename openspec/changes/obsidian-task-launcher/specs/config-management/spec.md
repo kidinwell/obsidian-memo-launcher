@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Provides configuration persistence and validation for Obsidian vault paths, Obsidian daily notes integration, folder locations, section headings, global hotkey bindings, and extensible task property schemas.
+Provides configuration persistence and validation for Obsidian vault paths, task folder locations, section headings, global hotkey bindings, and extensible task property schemas (daily note folder and format settings are delegated entirely to Obsidian's built-in Daily Notes core plugin and excluded from launcher configuration).
 
 ## ADDED Requirements
 
@@ -26,18 +26,18 @@ The system SHALL automatically inspect and synchronize settings from the Vault's
 
 #### Scenario: Missing daily notes config file
 - **WHEN** `.obsidian/daily-notes.json` does not exist in the configured Vault
-- **THEN** the system SHALL fall back to application-level daily note settings without throwing an error
+- **THEN** the system SHALL fall back to Obsidian core Daily Notes default values (date format `YYYY-MM-DD`, Vault root folder, no template) without throwing an error
 
-### Requirement: Task and Daily Note folder mapping
-The system SHALL support configuring custom subfolder paths within the Vault for storing task notes and daily notes.
+### Requirement: Task folder mapping
+The system SHALL support configuring a custom subfolder path within the Vault for storing task notes. Daily note locations SHALL be resolved exclusively via Obsidian's core Daily Notes plugin.
 
-#### Scenario: Custom subfolder paths configured
-- **WHEN** the user sets `task_folder: "Tasks"` and `daily_notes_folder: "Daily"` in configuration
-- **THEN** task notes SHALL be created in `[Vault]/Tasks/` and daily notes in `[Vault]/Daily/`
+#### Scenario: Custom task subfolder path configured
+- **WHEN** the user sets `task_folder: "Tasks"` in configuration
+- **THEN** task notes SHALL be created in `[Vault]/Tasks/`
 
-#### Scenario: Default folder fallback
-- **WHEN** no subfolder is configured for tasks or daily notes
-- **THEN** the system SHALL safely place the files directly in the Vault root or designated default folders
+#### Scenario: Default task folder fallback
+- **WHEN** no subfolder is configured for tasks
+- **THEN** the system SHALL place task notes in `[Vault]/Tasks/` by default, or in the Vault root if empty
 
 ### Requirement: Configurable worklog section heading
 The system SHALL allow users to customize the target section heading string used for locating and appending work logs in daily notes.

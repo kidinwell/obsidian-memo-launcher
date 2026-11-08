@@ -41,6 +41,12 @@
 - [x] 7.2 テスト用 Vault 環境でデイリーノートへの複数回の作業実績追記を行い、時系列に沿って設定見出し直下へきれいに追記されることを検証する
 - [x] 7.3 `%% worklog %%` アンカーコメントを含むデイリーノートテンプレートへの作業ログ追記E2Eテスト
 
+## 8. Remove Redundant Daily Note Settings
+
+- [x] 8.1 ランチャー設定モデル（`AppConfig`）から `daily_notes_folder`, `daily_note_format`, `daily_note_template_path` を削除し、デイリーノート解決ロジックが `.obsidian/daily-notes.json` および Obsidian コアプラグインのデフォルト値（`YYYY-MM-DD`、Vault ルート）のみを参照するよう Rust 実装と単体テストを更新する
+- [x] 8.2 フロントエンド設定画面（`SettingsModal.tsx`）および設定サービス・型定義からデイリーノート関連の入力項目（保存先フォルダ、日付書式、テンプレート）を削除し、UI を整理する
+- [x] 8.3 デイリーノート自動生成・追記および設定保存の E2E / 統合テストを更新し、Obsidian コア設定のみで正しく動作することを検証する
+
 ## Workflow follow-up
 
 - Archive the change after the project's review requirements are satisfied.

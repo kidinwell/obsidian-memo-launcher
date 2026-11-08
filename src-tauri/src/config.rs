@@ -26,12 +26,6 @@ pub struct AppConfig {
     pub worklog_use_anchor: bool,
     #[serde(default = "default_worklog_anchor_comment")]
     pub worklog_anchor_comment: String,
-    #[serde(default = "default_daily_notes_folder")]
-    pub daily_notes_folder: String,
-    #[serde(default = "default_daily_note_format")]
-    pub daily_note_format: String,
-    #[serde(default)]
-    pub daily_note_template_path: String,
     #[serde(default = "default_global_shortcut")]
     pub global_shortcut: String,
     #[serde(default = "default_auto_hide_on_blur")]
@@ -60,14 +54,6 @@ fn default_worklog_anchor_comment() -> String {
     "%% worklog %%".to_string()
 }
 
-fn default_daily_notes_folder() -> String {
-    "Daily".to_string()
-}
-
-fn default_daily_note_format() -> String {
-    "YYYY-MM-DD".to_string()
-}
-
 fn default_global_shortcut() -> String {
     "Super+Shift+Q".to_string()
 }
@@ -94,9 +80,6 @@ impl Default for AppConfig {
             worklog_section_heading: default_worklog_section_heading(),
             worklog_use_anchor: default_worklog_use_anchor(),
             worklog_anchor_comment: default_worklog_anchor_comment(),
-            daily_notes_folder: default_daily_notes_folder(),
-            daily_note_format: default_daily_note_format(),
-            daily_note_template_path: String::new(),
             global_shortcut: default_global_shortcut(),
             auto_hide_on_blur: default_auto_hide_on_blur(),
             task_custom_properties: default_task_custom_properties(),
@@ -186,9 +169,6 @@ mod tests {
             "worklog_section_heading": "## 業務ログ",
             "worklog_use_anchor": true,
             "worklog_anchor_comment": "<!-- worklog -->",
-            "daily_notes_folder": "Journal",
-            "daily_note_format": "YYYY/MM/DD",
-            "daily_note_template_path": "Templates/Daily.md",
             "global_shortcut": "Win+Shift+Z",
             "auto_hide_on_blur": false,
             "task_custom_properties": [

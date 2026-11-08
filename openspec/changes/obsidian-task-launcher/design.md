@@ -14,7 +14,7 @@ Windows標準の `Win+R` のように左手で瞬時に起動でき、リソー�
 - **Webスタックによる洗練されたUI**: HTML/CSS/TypeScriptを活用し、ユーザーがスタイルやレイアウトを容易にカスタマイズできるようにする。
 - **OSワイドのグローバルホットキー**: Windows API（`RegisterHotKey`）を利用し、アクティブウィンドウに関わらず左手操作しやすいショートカット（デフォルト `Win+Shift+Q`）で起動する。
 - **安全なObsidianファイル直接書き込み**: Obsidian Vault内のMarkdownファイルを直接操作し、フロントマターの正確な生成およびデイリーノートへの時系列追記を実現する。
-- **Obsidian標準設定との連携**: デイリーノートの保存先、日付書式、テンプレートに関して Obsidian コアプラグイン設定（`.obsidian/daily-notes.json`）を自動的に尊重する。
+- **Obsidian標準設定との連携**: デイリーノートの保存先、日付書式、テンプレートに関して Obsidian コアプラグイン設定（`.obsidian/daily-notes.json`）を自動的に尊重する。デイリーノートは Obsidian の標準コアプラグインであるため、ランチャーアプリ側にデイリーノート独自の設定項目は持たせず、Obsidian 側の構成に完全に従う。
 - **柔軟な拡張性**: 作業実績の追記見出し（タグ/セクション）やタスクプロパティ（見積もり、重要度等）を設定ベースで容易にカスタマイズ可能とする。
 
 **Non-Goals:**
@@ -87,7 +87,7 @@ Windows標準の `Win+R` のように左手で瞬時に起動でき、リソー�
     - `format`: デイリーノートの日付書式（例: `YYYY-MM-DD`）。
     - `folder`: デイリーノート格納先フォルダ（例: `Daily`）。
     - `template`: Vault内テンプレートファイルの相対パス（例: `Templates/Daily Note`）。`.md` 拡張子の有無に関わらずファイルを検索・解決。
-  - 設定ファイルが存在しない、または各キーが未定義の場合は、アプリ側のデフォルト設定（`config.json`）または付属テンプレート（`dailynote-template.md`）へフォールバックする。
+  - 設定ファイルが存在しない、または各キーが未定義の場合は、Obsidianコアプラグインのデフォルト設定（日付書式: `YYYY-MM-DD`、格納フォルダ: Vaultルート、テンプレート: なし）へフォールバックする（ランチャーアプリ側にはデイリーノート用設定項目を持たせない）。
 
 - **デイリーノートへの作業ログ追記**:
   - 本日ノートのパス解決: `{vault_path}/{daily_folder}/{formatted_today}.md`
@@ -123,9 +123,6 @@ Windows標準の `Win+R` のように左手で瞬時に起動でき、リソー�
     "worklog_section_heading": "## 作業ログ",
     "worklog_use_anchor": false,
     "worklog_anchor_comment": "%% worklog %%",
-    "daily_notes_folder": "Daily",
-    "daily_note_format": "YYYY-MM-DD",
-    "daily_note_template_path": "",
     "global_shortcut": "Super+Shift+Q",
     "auto_hide_on_blur": true,
     "task_custom_properties": [

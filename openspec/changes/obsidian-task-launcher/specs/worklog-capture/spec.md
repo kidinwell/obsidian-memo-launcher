@@ -22,7 +22,7 @@ The system SHALL ensure the target daily note for the current date exists before
 
 #### Scenario: Fallback when Obsidian daily notes config is absent
 - **WHEN** today's daily note does not exist and `.obsidian/daily-notes.json` is missing or does not specify a template
-- **THEN** the system SHALL create the daily note using application default naming and template rules
+- **THEN** the system SHALL create the daily note using Obsidian core plugin defaults (date format `YYYY-MM-DD`, root folder, no template)
 
 #### Scenario: Daily note already exists
 - **WHEN** the daily note for today already exists in the Vault

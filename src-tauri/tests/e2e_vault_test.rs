@@ -68,9 +68,6 @@ Good day.
             worklog_section_heading: "## 作業ログ".to_string(),
             worklog_use_anchor: false,
             worklog_anchor_comment: "%% worklog %%".to_string(),
-            daily_notes_folder: "Daily".to_string(),
-            daily_note_format: "YYYY-MM-DD".to_string(),
-            daily_note_template_path: "Templates/DailyTemplate.md".to_string(),
             global_shortcut: "Super+Shift+Q".to_string(),
             auto_hide_on_blur: true,
             task_custom_properties: vec![
@@ -292,4 +289,67 @@ created: {{date}}
     assert!(final_content.contains("type: daily"));
     assert!(final_content.contains("## 今日の目標\n- [ ] 今日の目標を達成する"));
     assert!(final_content.contains("## 振り返り\nお疲れ様でした。"));
+}
+
+#[test]
+fn test_e2e_worklog_fallback_without_obsidian_daily_notes_config() {
+    let count = COUNTER.fetch_add(1, Ordering::SeqCst);
+    let vault_path = env::temp_dir().join(format!("obsidian_e2e_fallback_vault_{}_{}", std::process::id(), count));
+    if vault_path.exists() {
+        let _ = fs::remove_dir_all(&vault_path);
+    }
+    fs::create_dir_all(&vault_path).unwrap();
+
+    let config = AppConfig {
+        vault_path: vault_path.to_string_lossy().to_string(),
+        tasks_folder: "Tasks".to_string(),
+        default_mode: "worklog".to_string(),
+        worklog_section_heading: "## 作業ログ".to_string(),
+        worklog_use_anchor: false,
+        worklog_anchor_comment: "%% worklog %%".to_string(),
+        global_shortcut: "Super+Shift+Q".to_string(),
+        auto_hide_on_blur: true,
+        task_custom_properties: Vec::new(),
+    };
+
+    // Notice no .obsidian/daily-notes.json is created.
+    // Append worklog: should fall back to Vault root and YYYY-MM-DD.md
+    let log = WorklogInput {
+        memo: "フォールバックテスト\n- ルート直下に作成".to_string(),
+        timestamp: Some("12:00".to_string()),
+    };
+    let res = append_worklog(&log, &config).expect("Worklog append without daily-notes.json should succeed");
+    assert!(res.success);
+
+    let note_path = PathBuf::from(&res.daily_note_path);
+    assert!(note_path.exists());
+    // Note must be in the vault root
+    assert_eq!(note_path.parent().unwrap(), vault_path.as_path());
+
+    let content = fs::read_to_string(&note_path).unwrap();
+    assert!(content.contains("## 作業ログ"));
+    assert!(content.contains("12:00\nフォールバックテスト\n- ルート直下に作成"));
+
+    let _ = fs::remove_dir_all(&vault_path);
+}
+
+#[test]
+fn test_e2e_config_save_and_load_workflow() {
+    use obsidian_task_launcher_lib::config::{load_config_from_path, save_config_to_path};
+    let temp_dir = env::temp_dir().join(format!("obsidian_e2e_config_{}", std::process::id()));
+    fs::create_dir_all(&temp_dir).unwrap();
+    let config_path = temp_dir.join("config.json");
+
+    let mut cfg = AppConfig::default();
+    cfg.vault_path = "C:/Test/Vault".to_string();
+    cfg.tasks_folder = "CustomTasks".to_string();
+    cfg.worklog_section_heading = "## 今日のログ".to_string();
+    cfg.worklog_use_anchor = true;
+    cfg.worklog_anchor_comment = "<!-- log-here -->".to_string();
+
+    assert!(save_config_to_path(&cfg, &config_path).is_ok());
+    let loaded = load_config_from_path(&config_path);
+    assert_eq!(cfg, loaded);
+
+    let _ = fs::remove_dir_all(&temp_dir);
 }

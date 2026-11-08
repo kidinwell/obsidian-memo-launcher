@@ -62,41 +62,22 @@ pub struct ResolvedDailySettings {
     pub template_path: Option<PathBuf>,
 }
 
-pub fn resolve_daily_settings(vault_path: &Path, app_config: &AppConfig) -> ResolvedDailySettings {
+pub fn resolve_daily_settings(vault_path: &Path) -> ResolvedDailySettings {
     let obs_cfg = read_obsidian_daily_notes_config(vault_path).unwrap_or_default();
 
     let folder = obs_cfg
         .folder
         .filter(|f| !f.trim().is_empty())
-        .unwrap_or_else(|| {
-            if !app_config.daily_notes_folder.trim().is_empty() {
-                app_config.daily_notes_folder.clone()
-            } else {
-                "Daily".to_string()
-            }
-        });
+        .unwrap_or_default();
 
     let format = obs_cfg
         .format
         .filter(|f| !f.trim().is_empty())
-        .unwrap_or_else(|| {
-            if !app_config.daily_note_format.trim().is_empty() {
-                app_config.daily_note_format.clone()
-            } else {
-                "YYYY-MM-DD".to_string()
-            }
-        });
+        .unwrap_or_else(|| "YYYY-MM-DD".to_string());
 
     let template_rel = obs_cfg
         .template
-        .filter(|t| !t.trim().is_empty())
-        .or_else(|| {
-            if !app_config.daily_note_template_path.trim().is_empty() {
-                Some(app_config.daily_note_template_path.clone())
-            } else {
-                None
-            }
-        });
+        .filter(|t| !t.trim().is_empty());
 
     let template_path = template_rel.and_then(|rel| {
         let direct = vault_path.join(&rel);
@@ -282,7 +263,7 @@ pub fn append_worklog(
     }
 
     let now: DateTime<Local> = Local::now();
-    let settings = resolve_daily_settings(vault_dir, config);
+    let settings = resolve_daily_settings(vault_dir);
     let daily_note_path = ensure_daily_note_exists(vault_dir, &settings, &now)?;
 
     let timestamp = input
@@ -383,12 +364,25 @@ Good day!
         fs::create_dir_all(&tpl_dir).unwrap();
         fs::write(tpl_dir.join("CustomDaily.md"), "# {{title}}\n\n## 作業ログ\n\n").unwrap();
 
-        let app_cfg = AppConfig::default();
-        let resolved = resolve_daily_settings(&temp_dir, &app_cfg);
+        let resolved = resolve_daily_settings(&temp_dir);
 
         assert_eq!(resolved.format, "YYYY_MM_DD");
         assert_eq!(resolved.folder, "DailyNotes");
         assert!(resolved.template_path.is_some());
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_resolve_daily_settings_fallback_defaults() {
+        let temp_dir = env::temp_dir().join(format!("obs_fallback_test_{}", std::process::id()));
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        let resolved = resolve_daily_settings(&temp_dir);
+
+        assert_eq!(resolved.format, "YYYY-MM-DD");
+        assert_eq!(resolved.folder, "");
+        assert_eq!(resolved.template_path, None);
 
         let _ = fs::remove_dir_all(&temp_dir);
     }
@@ -400,8 +394,6 @@ Good day!
 
         let mut app_cfg = AppConfig::default();
         app_cfg.vault_path = temp_dir.to_str().unwrap().to_string();
-        app_cfg.daily_notes_folder = "Journal".to_string();
-        app_cfg.daily_note_format = "YYYY-MM-DD".to_string();
         app_cfg.worklog_section_heading = "## 作業ログ".to_string();
 
         let input1 = WorklogInput {
@@ -551,11 +543,18 @@ Good day.
         let tpl_content = "# {{title}}\n\n## 作業ログ\n\n%% worklog %%\n\n## 振り返り\n";
         fs::write(tpl_dir.join("Daily.md"), tpl_content).unwrap();
 
+        // Create .obsidian/daily-notes.json
+        let obs_dir = temp_dir.join(".obsidian");
+        fs::create_dir_all(&obs_dir).unwrap();
+        let daily_cfg = serde_json::json!({
+            "format": "YYYY-MM-DD",
+            "folder": "Daily",
+            "template": "Templates/Daily"
+        });
+        fs::write(obs_dir.join("daily-notes.json"), daily_cfg.to_string()).unwrap();
+
         let mut app_cfg = AppConfig::default();
         app_cfg.vault_path = temp_dir.to_str().unwrap().to_string();
-        app_cfg.daily_notes_folder = "Daily".to_string();
-        app_cfg.daily_note_format = "YYYY-MM-DD".to_string();
-        app_cfg.daily_note_template_path = "Templates/Daily.md".to_string();
         app_cfg.worklog_section_heading = "## 作業ログ".to_string();
         app_cfg.worklog_use_anchor = true;
         app_cfg.worklog_anchor_comment = "%% worklog %%".to_string();

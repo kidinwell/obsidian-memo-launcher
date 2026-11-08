@@ -170,73 +170,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Folders */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-medium text-zinc-300 mb-1">
-                タスク保存先フォルダ
-              </label>
-              <input
-                type="text"
-                value={config.tasks_folder}
-                onChange={(e) => handleChange("tasks_folder", e.target.value)}
-                placeholder="Tasks"
-                className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-medium text-zinc-300 mb-1">
-                デイリーノート保存先フォルダ
-              </label>
-              <input
-                type="text"
-                value={config.daily_notes_folder}
-                onChange={(e) => handleChange("daily_notes_folder", e.target.value)}
-                placeholder="Daily"
-                className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-
-          {/* Daily Note Settings */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-medium text-zinc-300 mb-1">
-                日付書式 (Format)
-              </label>
-              <input
-                type="text"
-                value={config.daily_note_format}
-                onChange={(e) => handleChange("daily_note_format", e.target.value)}
-                placeholder="YYYY-MM-DD"
-                className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-medium text-zinc-300 mb-1">
-                作業ログ走査見出し
-              </label>
-              <input
-                type="text"
-                value={config.worklog_section_heading}
-                onChange={(e) => handleChange("worklog_section_heading", e.target.value)}
-                placeholder="## 作業ログ"
-                className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-
+          {/* Task Folder */}
           <div>
             <label className="block text-[11px] font-medium text-zinc-300 mb-1">
-              デイリーノートテンプレート (相対パス)
+              タスク保存先フォルダ
             </label>
             <input
               type="text"
-              value={config.daily_note_template_path}
-              onChange={(e) => handleChange("daily_note_template_path", e.target.value)}
-              placeholder="Templates/Daily Note.md (未設定時は自動検出)"
+              value={config.tasks_folder}
+              onChange={(e) => handleChange("tasks_folder", e.target.value)}
+              placeholder="Tasks"
               className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
+          </div>
+
+          {/* Worklog Section Heading */}
+          <div>
+            <label className="block text-[11px] font-medium text-zinc-300 mb-1">
+              作業ログ走査見出し
+            </label>
+            <input
+              type="text"
+              value={config.worklog_section_heading}
+              onChange={(e) => handleChange("worklog_section_heading", e.target.value)}
+              placeholder="## 作業ログ"
+              className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            <p className="mt-1 text-[10px] text-zinc-500">
+              ※ デイリーノートの保存先フォルダ・日付書式・テンプレートは Obsidian コアプラグイン設定 (.obsidian/daily-notes.json) に自動連携します。
+            </p>
           </div>
 
           {/* Anchor Settings */}
