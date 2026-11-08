@@ -18,6 +18,8 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Tabs */}
       <div className="flex items-center gap-1.5 p-1 bg-zinc-900/90 rounded-xl border border-zinc-800/60">
         <button
+          data-testid="tab-worklog-btn"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onTabChange("worklog")}
           className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
             activeTab === "worklog"
@@ -29,6 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
           作業実績
         </button>
         <button
+          data-testid="tab-task-btn"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onTabChange("task")}
           className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
             activeTab === "task"
@@ -44,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Action icons */}
       <div className="flex items-center gap-1">
         <button
+          data-testid="open-settings-btn"
           onClick={onOpenSettings}
           title="設定 (Settings)"
           className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
@@ -59,6 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
           </svg>
         </button>
         <button
+          data-testid="close-launcher-btn"
           onClick={onClose}
           title="閉じる (Esc)"
           className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"

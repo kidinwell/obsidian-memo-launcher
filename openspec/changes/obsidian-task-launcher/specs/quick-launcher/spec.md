@@ -11,7 +11,7 @@ The system SHALL register an OS-level global hotkey and bring the launcher windo
 
 #### Scenario: Pressing configured global hotkey
 - **WHEN** the user presses the configured global shortcut (e.g. Win+Shift+Q) while another application is active
-- **THEN** the launcher window SHALL immediately appear in the foreground centered or anchored on screen and accept keyboard input
+- **THEN** the launcher window SHALL immediately appear in the foreground centered or anchored on screen and automatically focus the primary input field of the active mode (memo textarea in Worklog mode or title input in Task mode), accepting keyboard input immediately
 
 #### Scenario: Pressing hotkey when launcher is already visible
 - **WHEN** the user presses the global shortcut while the launcher window is currently active
@@ -33,9 +33,13 @@ The system SHALL provide a fast keyboard-friendly mechanism to switch between Ta
 
 #### Scenario: Switching modes via shortcut
 - **WHEN** the user presses the mode toggle shortcut (such as Tab on empty input or Ctrl+Tab / Alt+1 / Alt+2)
-- **THEN** the launcher view SHALL immediately switch between the Task creation form and the Worklog input form while preserving existing inputs in each mode
+- **THEN** the launcher view SHALL immediately switch between the Task creation form and the Worklog input form, preserve existing inputs in each mode, and automatically focus the primary input field of the target mode
 
 #### Scenario: Default initial mode
 - **WHEN** the launcher window is opened
 - **THEN** it SHALL display the Worklog input mode by default with the memo textarea immediately focused
+
+#### Scenario: Restoring focus on window activation and modal dismiss
+- **WHEN** the launcher window is reopened from a hidden state or the settings modal is dismissed
+- **THEN** the primary input field of the current active mode SHALL automatically regain focus
 

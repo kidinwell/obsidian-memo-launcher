@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { AppConfig } from "./types/config";
@@ -14,6 +14,29 @@ function App() {
   const [config, setConfigState] = useState<AppConfig | null>(null);
   const [activeTab, setActiveTab] = useState<"worklog" | "task">("worklog");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [focusCounter, setFocusCounter] = useState(0);
+
+  const isSettingsOpenRef = useRef(isSettingsOpen);
+
+  const triggerFocus = () => setFocusCounter((c) => c + 1);
+
+  const switchTab = (tab: "worklog" | "task") => {
+    setActiveTab(tab);
+    triggerFocus();
+  };
+
+  // Re-focus active input when settings modal is closed
+  useEffect(() => {
+    if (isSettingsOpenRef.current && !isSettingsOpen) {
+      triggerFocus();
+    }
+    isSettingsOpenRef.current = isSettingsOpen;
+  }, [isSettingsOpen]);
+
+  // Trigger focus when activeTab changes
+  useEffect(() => {
+    triggerFocus();
+  }, [activeTab]);
 
   // Form persistence across tabs
   const [worklogMemo, setWorklogMemo] = useState("");
@@ -57,7 +80,7 @@ function App() {
     showToast(msg, "error");
   };
 
-  // Load configuration on startup
+  // Load configuration on startup and register window listeners
   useEffect(() => {
     getConfig().then((cfg) => {
       setConfigState(cfg);
@@ -68,13 +91,14 @@ function App() {
 
     // Listen for launcher opened event from backend / tray / shortcut
     const unlistenOpenPromise = listen("launcher-opened", () => {
+      setIsSettingsOpen(false);
+      triggerFocus();
       getConfig().then((cfg) => {
         setConfigState(cfg);
         if (cfg.default_mode === "task" || cfg.default_mode === "worklog") {
           setActiveTab(cfg.default_mode);
         }
       }).catch(console.error);
-      setIsSettingsOpen(false);
     });
 
     // Listen for open settings event from tray menu
@@ -82,9 +106,21 @@ function App() {
       setIsSettingsOpen(true);
     });
 
+    // Listen for window focus to restore input focus on window activation
+    const handleWindowFocus = (e: FocusEvent) => {
+      if (e.target && e.target instanceof HTMLElement) {
+        return;
+      }
+      if (!isSettingsOpenRef.current) {
+        triggerFocus();
+      }
+    };
+    window.addEventListener("focus", handleWindowFocus);
+
     return () => {
       unlistenOpenPromise.then((unlisten) => unlisten());
       unlistenSettingsPromise.then((unlisten) => unlisten());
+      window.removeEventListener("focus", handleWindowFocus);
     };
   }, []);
 
@@ -106,18 +142,19 @@ function App() {
       if (e.ctrlKey && e.key === "Tab") {
         e.preventDefault();
         setActiveTab((prev) => (prev === "worklog" ? "task" : "worklog"));
+        triggerFocus();
         return;
       }
 
       // Alt+1 / Alt+2
       if (e.altKey && e.key === "1") {
         e.preventDefault();
-        setActiveTab("worklog");
+        switchTab("worklog");
         return;
       }
       if (e.altKey && e.key === "2") {
         e.preventDefault();
-        setActiveTab("task");
+        switchTab("task");
         return;
       }
     };
@@ -136,7 +173,7 @@ function App() {
         {/* Top Header & Tab Controls */}
         <Header
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={switchTab}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onClose={handleClose}
         />
@@ -147,6 +184,7 @@ function App() {
             <WorklogForm
               memo={worklogMemo}
               setMemo={setWorklogMemo}
+              autoFocusTrigger={focusCounter}
               onSuccess={handleSuccess}
               onError={handleError}
             />
@@ -155,6 +193,7 @@ function App() {
               formData={taskData}
               setFormData={setTaskData}
               customPropertiesConfig={config?.task_custom_properties || []}
+              autoFocusTrigger={focusCounter}
               onSuccess={handleSuccess}
               onError={handleError}
             />

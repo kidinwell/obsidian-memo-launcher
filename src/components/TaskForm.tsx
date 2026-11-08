@@ -16,6 +16,7 @@ interface TaskFormProps {
   customPropertiesConfig: CustomProperty[];
   onSuccess: (msg: string) => void;
   onError: (msg: string) => void;
+  autoFocusTrigger?: number;
 }
 
 export const TaskForm: React.FC<TaskFormProps> = ({
@@ -24,13 +25,21 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   customPropertiesConfig,
   onSuccess,
   onError,
+  autoFocusTrigger,
 }) => {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    titleInputRef.current?.focus();
-  }, []);
+    const timer = setTimeout(() => {
+      if (titleInputRef.current) {
+        titleInputRef.current.focus();
+        const len = titleInputRef.current.value.length;
+        titleInputRef.current.setSelectionRange(len, len);
+      }
+    }, 20);
+    return () => clearTimeout(timer);
+  }, [autoFocusTrigger]);
 
   const handleChange = (field: keyof TaskFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -98,6 +107,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           </label>
           <input
             ref={titleInputRef}
+            data-testid="task-title-input"
             type="text"
             value={formData.title}
             onChange={(e) => handleChange("title", e.target.value)}

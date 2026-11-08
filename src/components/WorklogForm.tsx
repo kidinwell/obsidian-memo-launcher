@@ -6,6 +6,7 @@ interface WorklogFormProps {
   setMemo: (val: string) => void;
   onSuccess: (msg: string) => void;
   onError: (msg: string) => void;
+  autoFocusTrigger?: number;
 }
 
 export const WorklogForm: React.FC<WorklogFormProps> = ({
@@ -13,6 +14,7 @@ export const WorklogForm: React.FC<WorklogFormProps> = ({
   setMemo,
   onSuccess,
   onError,
+  autoFocusTrigger,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -31,8 +33,15 @@ export const WorklogForm: React.FC<WorklogFormProps> = ({
   }, []);
 
   useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+    const timer = setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const len = textareaRef.current.value.length;
+        textareaRef.current.setSelectionRange(len, len);
+      }
+    }, 20);
+    return () => clearTimeout(timer);
+  }, [autoFocusTrigger]);
 
   const handleSubmit = async () => {
     if (submitting) return;
@@ -77,6 +86,7 @@ export const WorklogForm: React.FC<WorklogFormProps> = ({
       <div className="relative flex-1 min-h-[180px]">
         <textarea
           ref={textareaRef}
+          data-testid="worklog-memo-input"
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
           onKeyDown={handleKeyDown}

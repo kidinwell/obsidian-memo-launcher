@@ -5,12 +5,13 @@ pub mod task_capture;
 pub mod tray;
 pub mod worklog_capture;
 
-use tauri::WebviewWindow;
+use tauri::{Emitter, WebviewWindow};
 
 #[tauri::command]
 fn show_launcher(window: WebviewWindow) -> Result<(), String> {
     window.show().map_err(|e| e.to_string())?;
     window.set_focus().map_err(|e| e.to_string())?;
+    let _ = window.emit("launcher-opened", ());
     Ok(())
 }
 

@@ -58,6 +58,12 @@
 - [x] 10.2 セクション挿入（`insert_entry_into_content`）およびアンカー挿入（`insert_entry_before_anchor`）で `### hh:mm` 形式のエントリが正しく配置されることを検証する
 - [x] 10.3 フロントエンドのプレースホルダーやヘルプテキスト等を微調整し、E2E での記録結果を確認する
 
+## 11. Input Auto-focus Reliability on Window Activation & Mode Switch
+
+- [x] 11.1 ランチャー再表示時（ホットキー・トレイ起動時の `launcher-opened` イベントおよびウィンドウ `focus` イベント検知時）に、アクティブモードの入力欄（Worklog: メモ欄、Task: タイトル欄）へ確実に自動フォーカスを当てる処理を実装する
+- [x] 11.2 モード切り替え時（タブクリック、`Ctrl+Tab`、`Alt+1` / `Alt+2`）および設定モーダルを閉じた際に、アクティブなフォームの先頭入力欄へ自動でフォーカスを移動する処理を実装する
+- [x] 11.3 再表示・タブ切り替え・モーダル閉鎖後の自動フォーカス挙動が期待通り動作することを検証する
+
 ## Workflow follow-up
 
 - Archive the change after the project's review requirements are satisfied.
